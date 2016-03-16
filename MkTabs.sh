@@ -14,6 +14,18 @@ then
    exit 1
 fi
 
+# Make sure that chroot'ed /etc/directory exists
+if [[ ! -d ${CHROOT}/etc ]]
+then
+   mkdir -p ${CHROOT}/etc
+   if [[ $? -ne 0 ]]
+   then
+      echo "Failed to create /etc" > /dev/stderr && exit 1
+   else
+      echo "Created ${CHROOT}/etc" 
+   fi
+fi
+
 # Create file-header
 cat << EOF > ${FSTAB}
 #
