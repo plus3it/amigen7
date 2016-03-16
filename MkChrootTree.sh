@@ -36,39 +36,73 @@ fi
 VGNAME=$(lsblk -i -o NAME,TYPE ${LVMDEV} | grep -w lvm | sed 's/^ *.-//' | \
          cut -d "-" -f 1 | uniq)
 
-# Ensure all LVM volumes are active
-vgchange -a y ${VGNAME} || err_out 2 "Failed to activate LVM"
+# Mount filesystems
+if [[ -z ${VGNAME+xxx} ]]
+   then
+   
+   # Ensure all LVM volumes are active
+   vgchange -a y ${VGNAME} || err_out 2 "Failed to activate LVM"
+   
+   # Mount chroot base device
+   echo "Mounting /dev/${VGNAME}/rootVol to ${ALTROOT}"
+   mount /dev/${VGNAME}/rootVol ${ALTROOT}/ || err_out 2 "Mount Failed"
+   
+   # Prep for next-level mounts
+   mkdir -p ${ALTROOT}/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
+   
+   # Mount the boot-root
+   echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
+   mount ${BOOTDEV} ${ALTROOT}/boot/ || err_out 2 "Mount Failed"
+   
+   # Mount first of /var hierarchy
+   echo "Mounting /dev/${VGNAME}/varVol to ${ALTROOT}/var"
+   mount /dev/${VGNAME}/varVol ${ALTROOT}/var/ || err_out 2 "Mount Failed"
+   
+   # Prep next-level mountpoints
+   mkdir -p ${ALTROOT}/var/{cache,log,lock,lib/{,rpm},tmp}
+   
+   # Mount log volume
+   echo "Mounting /dev/${VGNAME}/logVol to ${ALTROOT}/var/log"
+   mount /dev/${VGNAME}/logVol ${ALTROOT}/var/log
+   
+   # Mount audit volume
+   mkdir ${ALTROOT}/var/log/audit
+   echo "Mounting /dev/${VGNAME}/auditVol to ${ALTROOT}/var/log/audit"
+   mount /dev/${VGNAME}/auditVol ${ALTROOT}/var/log/audit
+   
+   # Mount the rest
+   echo "Mounting /dev/${VGNAME}/homeVol to ${ALTROOT}/home"
+   mount /dev/${VGNAME}/homeVol ${ALTROOT}/home/
+else
+   ########################################################
+   ## NOTE: This section assumes a simple, two-partition ##
+   ##       disk with "/boot" on primary-partition 1 and ##
+   ##       "/" on primary-partition 2. This script also ## 
+   ##       assumes that each partition is labeled.      ## 
+   ########################################################
 
-# Mount chroot base device
-echo "Mounting /dev/${VGNAME}/rootVol to ${ALTROOT}"
-mount /dev/${VGNAME}/rootVol ${ALTROOT}/ || err_out 2 "Mount Failed"
+   MNTPTS=(/boot /)
+   IFS=$'\n'; PARTS=( $(lsblk -i /dev/xvdn | awk '/ part *$/{ print $1}' | \
+                        sed 's/^.-//') )
 
-# Prep for next-level mounts
-mkdir -p ${ALTROOT}/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
+   # Iterate partitions and mount
+   for (( IDX=${#PARTS[@]}-1 ; IDX>=0 ; IDX-- ))
+   do
+      # Get partition-label 
+      LABEL=$(e2label /dev/${PARTS[IDX]})
 
-# Mount the boot-root
-echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
-mount ${BOOTDEV} ${ALTROOT}/boot/ || err_out 2 "Mount Failed"
+      # Ensure mount-point exists
+      if [[ ! -d ${CHROOT}${MNTPTS[IDX]} ]]
+      then
+         mkdir -p ${CHROOT}${MNTPTS[IDX]}
+      fi
 
-# Mount first of /var hierarchy
-echo "Mounting /dev/${VGNAME}/varVol to ${ALTROOT}/var"
-mount /dev/${VGNAME}/varVol ${ALTROOT}/var/ || err_out 2 "Mount Failed"
+      # Mount partition by label
+      mount LABEL=${LABEL} ${CHROOT}${MNTPTS[IDX]}
+   done
 
-# Prep next-level mountpoints
-mkdir -p ${ALTROOT}/var/{cache,log,lock,lib/{,rpm},tmp}
+fi    
 
-# Mount log volume
-echo "Mounting /dev/${VGNAME}/logVol to ${ALTROOT}/var/log"
-mount /dev/${VGNAME}/logVol ${ALTROOT}/var/log
-
-# Mount audit volume
-mkdir ${ALTROOT}/var/log/audit
-echo "Mounting /dev/${VGNAME}/auditVol to ${ALTROOT}/var/log/audit"
-mount /dev/${VGNAME}/auditVol ${ALTROOT}/var/log/audit
-
-# Mount the rest
-echo "Mounting /dev/${VGNAME}/homeVol to ${ALTROOT}/home"
-mount /dev/${VGNAME}/homeVol ${ALTROOT}/home/
 
 # Prep for loopback mounts
 mkdir -p ${ALTROOT}/{proc,sys,dev/{pts,shm}}
