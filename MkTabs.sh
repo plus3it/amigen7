@@ -1,0 +1,69 @@
+#!/bin/sh
+#
+# Script to set up the chroot'ed /etc/fstab
+#
+#################################################################
+CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOTDEV=${1:-UNDEF}
+FSTAB="${CHROOT}/etc/fstab"
+
+# Check for arguments
+if [[ $# -lt 1 ]]
+then
+   echo "Missing parameter(s). Aborting..." > /dev/stderr
+   exit 1
+fi
+
+# Create file-header
+cat << EOF > ${FSTAB}
+#
+# /etc/fstab
+#
+# Accessible filesystems, by reference, are maintained under '/dev/disk'
+# See man pages fstab(5), findfs(8), mount(8) and/or blkid(8) for more info
+#
+EOF
+
+_CHROOT=$(echo ${CHROOT} | sed 's#^/##')
+
+# Read mtab matches into an array
+IFS=$'\n'; MTABLNS=( $(grep ${CHROOT} /etc/mtab | grep ^/dev | \
+                   sed 's#'${_CHROOT}'##') )
+
+
+for FSLINE in ${MTABLNS[@]}
+do
+   BLKDEV=$(echo $FSLINE | awk '{print $1}')
+   MNTPNT=$(echo $FSLINE | awk '{print $2}' | sed 's#//#/#')
+   FSTYPE=$(echo $FSLINE | awk '{print $3}')
+
+   case ${FSTYPE} in
+      ext[234])
+         if [[ ! $(e2label ${BLKDEV}) = "" ]]
+         then
+            BLKDEV="LABEL=$(e2label ${BLKDEV})"
+         fi
+         ;;
+      xfs)
+         echo POINK
+         ;;
+   esac
+   printf "%s\t%s\t%s\tdefaults\t0 0\n" ${BLKDEV} ${MNTPNT} ${FSTYPE}
+done >> ${FSTAB}
+
+# Read mtab matches into an array
+IFS=$'\n'; MTABLNS=( $(grep ${CHROOT} /etc/mtab | sed 's#'${_CHROOT}'##') )
+
+for FSLINE in ${MTABLNS[@]}
+do
+   BLKDEV=$(echo $FSLINE | awk '{print $1}')
+   MNTPNT=$(echo $FSLINE | awk '{print $2}' | sed 's#//#/#')
+   FSTYPE=$(echo $FSLINE | awk '{print $3}')
+   MNTOPT=$(echo $FSLINE | awk '{print $4}')
+   FSFREQ=$(echo $FSLINE | awk '{print $5}')
+   FSPASS=$(echo $FSLINE | awk '{print $6}')
+
+   printf "%s %s %s %s %s %s\n" ${BLKDEV} ${MNTPNT} ${FSTYPE} \
+      ${MNTOPT} ${FSFREQ} ${FSPASS}
+done > ${CHROOT}/etc/mtab
+
