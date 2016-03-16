@@ -8,6 +8,7 @@ CHROOTDEV=${1:-UNDEF}
 FSTAB="${CHROOT}/etc/fstab"
 SCRIPTDIR="$(dirname $0)"
 YUMCONF="${SCRIPTDIR}/yum-chroot.conf"
+AUTO=${1}
 
 # Verify that YUM0 is set
 if [[ -z "${YUM0+xxx}" ]]
@@ -15,6 +16,12 @@ then
    echo "The 'YUM0' env is not set. Aborting..." > /dev/stderr
    exit 1
 fi
+
+case ${AUTO} in
+   y|-y|Y|-Y|yes|Yes|YES)
+      AUTO="--assumeyes"
+      ;;
+esac
 
 # Create yum-chroot.conf as necessary
 if [[ ! -f "${YUMCONF}" ]]
@@ -31,7 +38,9 @@ then
 fi
 
 yum --disablerepo="*" --enablerepo="chroot-*" -c yum-chroot.conf \
-    --installroot=$CHROOT install @core -- \
+    --installroot=$CHROOT install ${AUTO} @core -- \
+    $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* | grep -v epel | \
+      sort -u) \
     authconfig \
     cloud-init \
     grub2 \
