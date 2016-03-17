@@ -75,7 +75,6 @@ do
    FSFREQ=$(echo $FSLINE | awk '{print $5}')
    FSPASS=$(echo $FSLINE | awk '{print $6}')
 
-   printf "%s %s %s %s %s %s\n" ${BLKDEV} ${MNTPNT} ${FSTYPE} \
-      ${MNTOPT} ${FSFREQ} ${FSPASS}
+   printf "%s %s %s %s %s %s\n" ${BLKDEV} ${MNTPNT} ${FSTYPE} ${MNTOPT} ${FSFREQ} ${FSPASS}
 done > ${CHROOT}/etc/mtab
 
