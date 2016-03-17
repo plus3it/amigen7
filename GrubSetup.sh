@@ -56,4 +56,15 @@ then
 fi
 
 # Create a GRUB2 config file
-chroot ${CHROOT} /sbin/grub2-mkconfig > ${CHROOT}/boot/grub2/grub.cfg
+chroot ${CHROOT} /sbin/grub2-install /dev/xvdn
+chroot ${CHROOT} /sbin/grub2-mkconfig  | sed 's#root='${CHROOTDEV}'. ##' > ${CHROOT}/boot/grub2/grub.cfg
+CHROOTKRN=$(chroot $CHROOT rpm --qf '%{version}-%{release}.%{arch}\n' -q kernel)
+chroot ${CHROOT} dracut -fv /boot/initramfs-${CHROOTKRN}.img ${CHROOTKRN}
+
+
+# Return bind-mounts to prior state
+umount $CHROOT/dev/pts
+umount $CHROOT/dev/shm
+umount $CHROOT/dev
+mount -o bind /dev/pts $CHROOT/dev/pts
+mount -o bind /dev/shm $CHROOT/dev/shm
