@@ -82,7 +82,7 @@ else
    ########################################################
 
    MNTPTS=(/boot /)
-   IFS=$'\n'; PARTS=( $(lsblk -i /dev/xvdn | awk '/ part *$/{ print $1}' | \
+   IFS=$'\n'; PARTS=( $(lsblk -i ${CHROOTDEV} | awk '/ part *$/{ print $1}' | \
                         sed 's/^.-//') )
 
    # Iterate partitions and mount

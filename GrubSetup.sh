@@ -56,7 +56,7 @@ then
 fi
 
 # Create a GRUB2 config file
-chroot ${CHROOT} /sbin/grub2-install /dev/xvdn
+chroot ${CHROOT} /sbin/grub2-install ${CHROOTDEV}
 chroot ${CHROOT} /sbin/grub2-mkconfig  | sed 's#root='${CHROOTDEV}'. ##' > ${CHROOT}/boot/grub2/grub.cfg
 CHROOTKRN=$(chroot $CHROOT rpm --qf '%{version}-%{release}.%{arch}\n' -q kernel)
 chroot ${CHROOT} dracut -fv /boot/initramfs-${CHROOTKRN}.img ${CHROOTKRN}
