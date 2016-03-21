@@ -37,7 +37,7 @@ VGNAME=$(lsblk -i -o NAME,TYPE ${LVMDEV} | grep -w lvm | sed 's/^ *.-//' | \
          cut -d "-" -f 1 | uniq)
 
 # Mount filesystems
-if [[ -z ${VGNAME+xxx} ]]
+if [[ ! -z ${VGNAME+xxx} ]]
    then
    
    # Ensure all LVM volumes are active
@@ -118,7 +118,8 @@ mknod -m 666 ${ALTROOT}/dev/ptmx c 5 2
 chown root:tty ${ALTROOT}/dev/ptmx 
 
 # Do loopback mounts
-mount -o bind /proc ${ALTROOT}/proc/
-mount -o bind /sys ${ALTROOT}/sys/
+mount -o bind /proc ${ALTROOT}/proc
+mount -o bind /sys ${ALTROOT}/sys
+mount -o bind /dev ${ALTROOT}/dev
 mount -o bind /dev/pts ${ALTROOT}/dev/pts
 mount -o bind /dev/shm ${ALTROOT}/dev/shm
