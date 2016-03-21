@@ -4,6 +4,7 @@
 #
 #################################################################
 PROGNAME=$(basename "$0")
+BOOTDEVSZ="500m"
 
 # Check for arguments
 if [[ $# -lt 1 ]]
@@ -26,7 +27,6 @@ function LogBrk() {
 
 # Partition as LVM 
 function CarveLVM() {
-   local BOOTDEVSZ="500m"
    local ROOTVOL=(rootVol 4g)
    local SWAPVOL=(swapVol 2g)
    local HOMEVOL=(homeVol 1g)
@@ -35,11 +35,11 @@ function CarveLVM() {
    local AUDVOL=(auditVol 100%FREE)
 
    # Clear the MBR and partition table
-   dd if=/dev/zero of=${CHROOTDEV} bs=512 count=1
+   dd if=/dev/zero of=${CHROOTDEV} bs=512 count=1000 > /dev/null 2>&1
 
    # Lay down the base partitions
    parted -s ${CHROOTDEV} -- mklabel msdos mkpart primary ext4 2048s ${BOOTDEVSZ} \
-      mkpart primary ext4 ${BOOTDEVSZ} 100%s set 2 lvm
+      mkpart primary ext4 ${BOOTDEVSZ} 100% set 2 lvm
 
    # Create LVM objects
    vgcreate ${VGNAME} ${CHROOTDEV}2 || log_it 5 "VG creation failed. Aborting!"
@@ -59,6 +59,19 @@ function CarveLVM() {
    mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]}
 }
 
+# Partition with no LVM
+function CarveBare() {
+   # Clear the MBR and partition table
+   dd if=/dev/zero of=${CHROOTDEV} bs=512 count=1000 > /dev/null 2>&1
+
+   # Lay down the base partitions
+   parted -s ${CHROOTDEV} -- mklabel msdos mkpart primary ext4 2048s ${BOOTDEVSZ} \
+      mkpart primary ext4 ${BOOTDEVSZ} 100%
+
+   # Create FS on partitions
+   mkfs -t ext4 -L "${BOOTLABEL}" ${CHROOTDEV}1
+   mkfs -t ext4 -L "${ROOTLABEL}" ${CHROOTDEV}2
+}
 
 
 
@@ -138,9 +151,13 @@ do
    esac
 done
 
-if [[ -z ${VGNAME+xxx} ]]
+if [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
 then
-   echo "${VGNAME} is not set"
-else
+   LogBrk 1 "The 'rootlabel' and 'vgname' arguments are mutually exclusive. Exiting."
+elif [[ -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
+then
    CarveLVM
+elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ -z ${VGNAME+xxx} ]]
+then
+   CarveBare
 fi
