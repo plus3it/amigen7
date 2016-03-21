@@ -151,7 +151,10 @@ do
    esac
 done
 
-if [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
+if [[ -z ${BOOTLABEL+xxx} ]]
+then
+   LogBrk 1 "Cannot continue without 'bootlabel' being specified. Aborting..."
+elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
 then
    LogBrk 1 "The 'rootlabel' and 'vgname' arguments are mutually exclusive. Exiting."
 elif [[ -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
