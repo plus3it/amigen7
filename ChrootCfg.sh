@@ -9,16 +9,6 @@ NTPCONF="${CHROOT}/etc/ntp.conf"
 CLOUDCF="${CHROOT}/etc/cloud/cloud.cfg"
 TIMEZON="UTC"
 
-# Dismount current /dev/* mountss
-umount ${CHROOT}/dev/pts
-umount ${CHROOT}/dev/shm
-   
-# Reconstruct chroot()'s dev-tree to be GRUB compatible
-mount -o bind /dev ${CHROOT}/dev
-mount -o bind /dev/pts ${CHROOT}/dev/pts
-mount -o bind /dev/shm ${CHROOT}/dev/shm
-mount -o bind /tmp ${CHROOT}/tmp
-   
 # Ensure key-based logins are enabled
 sed -i -e '/^ssh_pwauth/s/0$/1/' ${CLOUDCF}
 
@@ -63,11 +53,3 @@ chroot ${CHROOT} /bin/sh -c "(rpm -q --scripts selinux-policy-targeted | \
    sed -e '1i #!/bin/sh') > /tmp/selinuxconfig.sh ; \
    sh /tmp/selinuxconfig.sh 1"
 
-# Return chroot()'s dev-tree to PVM state
-umount ${CHROOT}/tmp
-umount ${CHROOT}/dev/pts
-umount ${CHROOT}/dev/shm
-umount ${CHROOT}/dev
-   
-mount -o bind /dev/pts ${CHROOT}/dev/pts
-mount -o bind /dev/shm ${CHROOT}/dev/shm
