@@ -117,9 +117,63 @@ mknod -m 666 ${ALTROOT}/dev/tty c 5 0
 mknod -m 666 ${ALTROOT}/dev/ptmx c 5 2
 chown root:tty ${ALTROOT}/dev/ptmx 
 
-# Do loopback mounts
-mount -o bind /proc ${ALTROOT}/proc
-mount -o bind /sys ${ALTROOT}/sys
-mount -o bind /dev ${ALTROOT}/dev
-mount -o bind /dev/pts ${ALTROOT}/dev/pts
-mount -o bind /dev/shm ${ALTROOT}/dev/shm
+
+# Bind-mount everything else
+BINDSOURCES=$(grep -v $CHROOT /proc/mounts | sed '{
+                 /rootfs/d
+                 /dev\/xvd/d
+                 /\/user\//d
+              }' | awk '{print $2}')
+
+for MOUNT in ${BINDSOURCES}
+do
+   if [[ ! -d ${CHROOT}${MOUNT} ]]
+   then
+      mkdir -p ${CHROOT}${MOUNT} && \
+         echo "Creating ${CHROOT}${MOUNT}" || break
+   fi
+   mount -o bind ${MOUNT} ${CHROOT}${MOUNT}
+done
+
+## # Ensure /tmp is mounted as tmpfs
+## SVCNAM="tmp.mount"
+## TMPSVC=$(systemctl is-enabled ${SVCNAM})
+## 
+## case ${TMPSVC} in
+##    masked)
+##       systemctl unmask ${SVCNAM} && \
+##         systemctl enable ${SVCNAM} && \
+##         systemctl start ${SVCNAM} 
+##       if [ $? -eq 0 ]
+##       then
+##          echo "/tmp mounted as tmpfs"
+##          exit 0
+##       else
+##          echo "Failed to mount /tmp as tmpfs." > /dev/stderr
+##          exit 1
+##       fi
+##       ;;
+##    disabled)
+##         systemctl enable ${SVCNAM} && \
+##         systemctl start ${SVCNAM} 
+##       if [ $? -eq 0 ]
+##       then
+##          echo "/tmp mounted as tmpfs"
+##          exit 0
+##       else
+##          echo "Failed to mount /tmp as tmpfs." > /dev/stderr
+##          exit 1
+##       fi
+##       ;;
+##    enabled)
+##       systemctl restart ${SVCNAM} 
+##       if [ $? -eq 0 ]
+##       then
+##          echo "/tmp mounted as tmpfs"
+##          exit 0
+##       else
+##          echo "Failed to mount /tmp as tmpfs." > /dev/stderr
+##          exit 1
+##       fi
+##       ;;
+## esac

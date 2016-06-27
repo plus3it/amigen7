@@ -31,13 +31,6 @@ then
    fi
 fi
 
-# Re-do bind-mounts to make GRUB2 tools happy...
-umount ${CHROOT}/dev/shm 
-umount ${CHROOT}/dev/pts
-mount -o bind /dev $CHROOT/dev
-mount -o bind /dev/pts $CHROOT/dev/pts
-mount -o bind /dev/shm $CHROOT/dev/shm
-
 # Add TERMINAL_OUTPUT line as necessary
 if [[ $(grep -q GRUB_TERMINAL_OUTPUT ${CHGRUBDEF})$? -ne 0 ]]
 then
@@ -47,24 +40,17 @@ then
    }' ${CHGRUBDEF}
 fi
 
-# Add appropriate root-dev
-if [[ $(grep -q "root=LABEL=" ${CHGRUBDEF})$? -ne 0 ]]
-then
-   echo "Adding root-label to ${CHGRUBDEF}."
-   RLABEL=$(e2label ${CHROOTDEV}2)
-   sed -i 's/GRUB_CMDLINE_LINUX="/&root=LABEL='${RLABEL}' /' ${CHGRUBDEF}
-fi
+## Only need if root not on LVM
+## # Add appropriate root-dev
+## if [[ $(grep -q "root=LABEL=" ${CHGRUBDEF})$? -ne 0 ]]
+## then
+##    echo "Adding root-label to ${CHGRUBDEF}."
+##    RLABEL=$(e2label ${CHROOTDEV}2)
+##    sed -i 's/GRUB_CMDLINE_LINUX="/&root=LABEL='${RLABEL}' /' ${CHGRUBDEF}
+## fi
 
 # Create a GRUB2 config file
 chroot ${CHROOT} /sbin/grub2-install ${CHROOTDEV}
 chroot ${CHROOT} /sbin/grub2-mkconfig  | sed 's#root='${CHROOTDEV}'. ##' > ${CHROOT}/boot/grub2/grub.cfg
 CHROOTKRN=$(chroot $CHROOT rpm --qf '%{version}-%{release}.%{arch}\n' -q kernel)
 chroot ${CHROOT} dracut -fv /boot/initramfs-${CHROOTKRN}.img ${CHROOTKRN}
-
-
-# Return bind-mounts to prior state
-umount $CHROOT/dev/pts
-umount $CHROOT/dev/shm
-umount $CHROOT/dev
-mount -o bind /dev/pts $CHROOT/dev/pts
-mount -o bind /dev/shm $CHROOT/dev/shm

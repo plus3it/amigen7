@@ -1,12 +1,34 @@
 #!/bin/sh
 #
 # Script to automate and standardize installation of AWScli tools
+#
+# This script assumes standard AWS-hosted location for the
+# CLI ZIP-file. It may be overridden by passing a URI as
+# the first argument to the script.
+#
+# For the second argument, provide the url to the epel-release
+# package, or it will default to one publicly available.
+#
 ############################################################
 SCRIPTROOT="$(dirname ${0})"
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 BUNDLE="awscli-bundle.zip"
 ZIPSRC="${1:-https://s3.amazonaws.com/aws-cli}"
+EPELRELEASE="${2:-https://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-7.noarch.rpm}"
 AWSZIP="/tmp/${BUNDLE}"
+
+# Make sure the AMZN.Linux packages are present
+AMZNRPMS=($( stat -c '%n' ${SCRIPTROOT}/AWSpkgs/*noarch.rpm))
+if [[ ${#AMZNRPMS[@]} -eq 0 ]]
+then
+   (
+    echo "AMZN.Linux packages not found in ${SCRIPTROOT}/AWSpkgs"
+    echo "Please download missing RPMs before proceeding."
+    echo "Note: GetAmznLx.sh may be used to do this for you."
+    echo "Aborting..."
+   ) > /dev/stderr
+   exit 1
+fi
 
 # Bail if bogus location for ZIP
 printf "Fetching ${BUNDLE} from ${ZIPSRC}..."
@@ -26,7 +48,7 @@ else
 fi
 
 # Unzip the AWScli bundle into /tmp
-(cd /tmp ; unzip ${AWSZIP})
+(cd /tmp ; unzip -o ${AWSZIP})
 
 # Copy the de-archived zip to ${CHROOT}
 cp -r /tmp/awscli-bundle ${CHROOT}/root
@@ -40,22 +62,10 @@ chroot ${CHROOT} /usr/bin/aws --version
 # Cleanup
 rm -rf ${CHROOT}/root/awscli-bundle
 
-# Install other AWS utilities to CHROOT
-BLDREG=$(curl -s \
-         http://169.254.169.254/latest/dynamic/instance-identity/document | \
-         awk -F":" '/region/{print $2}' | sed -e 's/",.*$//' -e 's/^.*"//')
-
-# If RedHat, stage a temp. RH yum-config
-if [[ $(rpm -qa | grep -q rhui)$? -eq 0 ]]
-then
-   sed 's/\.REGION\./.'${BLDREG}'./' /etc/yum.repos.d/redhat-rhui.repo > \
-     ${CHROOT}/etc/yum.repos.d/test.repo
-fi
-
-yum --installroot=${CHROOT} install -y ${SCRIPTROOT}/AWSpkgs/*.noarch.rpm
-
-# Nuke temp. RH yum-config if it exists
-if [ -e ${CHROOT}/etc/yum.repos.d/test.repo ]
-then
-   rm -f ${CHROOT}/etc/yum.repos.d/test.repo
-fi
+# Depending on RPMs dependencies, this may fail if a repo is
+# missing (e.g. EPEL). Will also fail if no RPMs are present
+# in the search directory.
+yum install -y ${EPELRELEASE}
+yum --installroot=${CHROOT} install -y ${EPELRELEASE}
+yum --installroot=${CHROOT} install -y ${SCRIPTROOT}/AWSpkgs/*.noarch.rpm || \
+    exit $?
