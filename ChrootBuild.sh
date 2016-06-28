@@ -6,22 +6,34 @@
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 CONFROOT=$(dirname $0)
+DISABLEREPOS="*media*,*epel*,C*-*,*-source-*,*-debug-*"
 
 function PrepChroot() {
-   local DISABLEREPOS="*media*,*epel*,C*-*"
+   local REPOPKGS=($(echo \
+                     $(rpm --qf '%{name}\n' -qf /etc/redhat-release) ; \
+                     echo $(rpm --qf '%{name}\n' -qf \
+                            /etc/yum.repos.d/* 2>&1 | \
+                            grep -v "not owned" | sort -u)
+                   ))
 
+   # Do this so that install of chkconfig RPM succeeds
    if [[ ! -e ${CHROOT}/etc/init.d ]]
    then
-      ln -t ${CHROOT}/etc -s rc.d/init.d
+      ln -t ${CHROOT}/etc -s ./rc.d/init.d
+   fi
+   if [[ ! -e ${CHROOT}/etc/rc.d/init.d ]]
+   then
+      install -d -m 0755 ${CHROOT}/etc/rc.d/init.d 
    fi
 
-   yumdownloader --destdir=/tmp $(rpm --qf '%{name}\n' -qf /etc/redhat-release)
-   yumdownloader --destdir=/tmp $(rpm --qf '%{name}\n' \
-      -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u)
+   yumdownloader --destdir=/tmp ${REPOPKGS[@]}
    rpm --root ${CHROOT} --initdb
    rpm --root ${CHROOT} -ivh --nodeps /tmp/*.rpm
+
    yum --enablerepo=* --disablerepo=${DISABLEREPOS} --installroot=${CHROOT} \
-      -y reinstall $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u)
+      -y reinstall ${REPOPKGS[@]}
+   yum --enablerepo=* --disablerepo=${DISABLEREPOS} --installroot=${CHROOT} \
+      -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repo
    if [[ ! -z ${REPORPM+xxx} ]]
@@ -99,8 +111,17 @@ else
    YUMDO="yum --nogpgcheck --installroot=${CHROOT} install -y"
 fi
 
+# Activate repos in the chroot...
+TOACTIVATE=($(chroot $CHROOT yum --enablerepo=* \
+               --disablerepo="${DISABLEREPOS}" repolist | \
+               sed -e '1,/^repo id/d' -e '/^repolist:/d' -e 's/\/.*$//'))
+CHROOTREPOS=$(echo "${TOACTIVATE[@]}" | sed -e 's/\s/,/g')
+
+
+chroot $CHROOT yum-config-manager --enable ${CHROOTREPOS}
+
 # Install main RPM-groups
-${YUMDO} @core -- \
+${YUMDO} "${DISABLEREPOS}" @core -- \
 $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
     authconfig \
     chrony \
