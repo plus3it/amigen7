@@ -7,6 +7,7 @@ BINDSOURCES=$(grep -v $CHROOT /proc/mounts | sed '{
                  /rootfs/d
                  /dev\/xvd/d
                  /\/user\//d
+                 /\/mapper\//d
               }' | awk '{print $2}')
 
 for MOUNT in ${BINDSOURCES}
