@@ -57,6 +57,7 @@ function CarveLVM() {
    mkfs -t ext4 /dev/${VGNAME}/${VARVOL[0]}
    mkfs -t ext4 /dev/${VGNAME}/${LOGVOL[0]}
    mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]}
+   mkswap /dev/${VGNAME}/${SWAPVOL[0]}
 }
 
 # Partition with no LVM
