@@ -26,8 +26,15 @@ The primary expected use case for these scripts is in a network that is able to 
 Once the above sequence exits successfully, an AMI may be created from the target-disk (/dev/xvdf in the example above):
 
 * For CentOS (or other "free" EL7 derivatives):
-    1.1.  Snapshot the target disk using either the AWS CLI or the AWS Web Console
-    1.1.  Register the EBS snapshot using either the AWS CLI or the AWS Web Console
-    1.1.  Launch a test-instance from the newly-created AMI and verify that if functions as expected.
+    1. Snapshot the target disk using either the AWS CLI or the AWS Web Console
+    1. Register the EBS snapshot using either the AWS CLI or the AWS Web Console
+    1. Launch a test-instance from the newly-created AMI and verify that if functions as expected.
 * For RHEL:
-  1. Shut down the build-host
+    1. Shut down the build-host
+    1. Detach boot EBS
+    1. Detach build-EBS
+    1. Re-attach build-EBS to boot EBS's original location
+    1. Register an AMI from the stopped instance
+    1. Launch a test-instance from the newly-created AMI and verify that if functions as expected:
+        * Has an appropriate billingProducts meta-data tag set
+        * Has access to license-related yum repositories
