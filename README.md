@@ -4,5 +4,6 @@ The scripts in this project are designed to ease the creation of LVM-enabled Ent
 
 ## Table of Contents
 
+* [Scripts](Docs/README_scripts.md)
 * [Planned Enhancements](Docs/README_enhancements.md)
 
