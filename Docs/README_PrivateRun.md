@@ -46,3 +46,6 @@ Once the above sequence exits successfully, an AMI may be created from the targe
     1. Launch a test-instance from the newly-created AMI and verify that if functions as expected:
         - Has an appropriate billingProducts meta-data tag set
         - Has access to license-related yum repositories
+
+
+The OS-specific components can be further automated by using frameworks like [Packer](https://www.packer.io/). One such project that does this is Plus3 IT's [spel](https://github.com/plus3it/spel) project.
