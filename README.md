@@ -5,5 +5,8 @@ The scripts in this project are designed to ease the creation of LVM-enabled Ent
 ## Table of Contents
 
 * [Scripts](Docs/README_scripts.md)
+* How to run:
+  * Via build-instance hosted on a [Public Network](Docs/README_PublicRun.md)
+  * Via build-instance hosted on a [Private Network](Docs/README_PrivateRun.md)
 * [Planned Enhancements](Docs/README_enhancements.md)
 
