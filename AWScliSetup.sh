@@ -54,7 +54,7 @@ fi
 cp -r /tmp/awscli-bundle ${CHROOT}/root
 
 # Install AWScli bundle into ${CHROOT}
-chroot ${CHROOT} /root/awscli-bundle/install -i /opt/aws -b /usr/bin/aws
+chroot ${CHROOT} /root/awscli-bundle/install -i /opt/aws/cli -b /usr/bin/aws
 
 # Verify AWScli functionality within ${CHROOT}
 chroot ${CHROOT} /usr/bin/aws --version
