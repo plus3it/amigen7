@@ -1,9 +1,21 @@
 #!/bin/bash
 #
 # Configure components within the chroot
+# * Set system-wide TZ to match TIMEZON value (UTC)
+# * Enable /tmp as tmpfs
+# * Configure ntp servers if a ntp_hosts.txt is found in
+#   the directory from which the script is exec'ed
+# * Enable ntpd client-service - if server is defined in
+#   ntp.conf
+# * Ensure that selinux policy-definitions are in place
+# * Process a secondary localization script if the
+#   secondary-script the environmental-variable
+#   (${LOCALSCRIPT}) is set and points to a valid
+#   location.
 #
 #####################################
 CHROOT="${CHROOT:-/mnt/ec2-root}"
+EXECIT=${LOCALSCRIPT:-UNDEF}
 TARGDEV="${1:-UNDEF}"
 NTPCONF="${CHROOT}/etc/ntp.conf"
 CLOUDCF="${CHROOT}/etc/cloud/cloud.cfg"
@@ -52,4 +64,17 @@ chroot ${CHROOT} /bin/sh -c "(rpm -q --scripts selinux-policy-targeted | \
    sed -e '1,/^postinstall scriptlet/d' | \
    sed -e '1i #!/bin/sh') > /tmp/selinuxconfig.sh ; \
    sh /tmp/selinuxconfig.sh 1"
+
+# Execute any localizations if a valid script-location is
+# passed as a shell-env
+if [[ ${EXECIT} = "UNDEF" ]]
+then
+   echo "No content-localization requested..."
+elif [[ -s ${EXECIT} ]]
+then
+   echo "Attempting to execut ${EXECIT}"
+   bash "${EXECIT}"
+else
+   echo "Content-localization file is null: will not attempt execution."
+fi
 
