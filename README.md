@@ -4,6 +4,7 @@ The scripts in this project are designed to ease the creation of LVM-enabled Ent
 
 ## Table of Contents
 
+* [Required RPMs](Docs/README_dependencies.md)
 * [Scripts](Docs/README_scripts.md)
 * How to run:
   * Via build-instance hosted on a [Public Network](Docs/README_PublicRun.md)
