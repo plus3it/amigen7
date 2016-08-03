@@ -19,6 +19,12 @@ chroot ${CHROOT} rm -rf /var/lib/yum
 # Nuke any history data
 cat /dev/null > ${CHROOT}/root/.bash_history
 
+# Clean up all the log files
+for FILE in $(find ${CHROOT}/var/log -type f)
+do
+   cat /dev/null > $FILE
+done
+
 # Set TZ to UTC
 rm ${CHROOT}/etc/localtime
 cp ${CHROOT}/usr/share/zoneinfo/UTC ${CHROOT}/etc/localtime
