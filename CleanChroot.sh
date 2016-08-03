@@ -6,6 +6,7 @@
 CHROOT=${CHROOT:-/mnt/ec2-root}
 CONFROOT=`dirname $0`
 CLOUDCFG="$CHROOT/etc/cloud/cloud.cfg"
+JRNLCNF="$CHROOT/etc/systemd/journald.conf"
 MAINTUSR="maintuser"
 
 # Disable EPEL repos
@@ -24,6 +25,12 @@ for FILE in $(find ${CHROOT}/var/log -type f)
 do
    cat /dev/null > $FILE
 done
+
+# Enable persistent journal logging
+if [[ $(grep -q ^Storage ${JRNLCNF})$? -ne 0 ]]
+then
+   echo 'Storage="persistent"' >> ${JRNLCNF}
+fi
 
 # Set TZ to UTC
 rm ${CHROOT}/etc/localtime
