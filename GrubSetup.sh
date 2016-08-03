@@ -44,10 +44,11 @@ then
     printf "GRUB_DISTRIBUTOR=\"$(sed 's, release .*$,,g' /etc/system-release)\"\n"
     printf "GRUB_DEFAULT=saved\n"
     printf "GRUB_DISABLE_SUBMENU=true\n"
-    printf "GRUB_TERMINAL_OUTPUT=\"console\"\n"
-    printf "GRUB_CMDLINE_LINUX=\"${ROOTLN} ro vconsole.keymap=us crashkernel=auto "
-    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0\"\n"
+    printf "GRUB_DISABLE_LINUX_UUID=true\n"
     printf "GRUB_DISABLE_RECOVERY=\"true\"\n"
+    printf "GRUB_TERMINAL_OUTPUT=\"console\"\n"
+    printf "GRUB_CMDLINE_LINUX=\"ro vconsole.keymap=us crashkernel=auto "
+    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0\"\n"
    ) > ${CHGRUBDEF}
 
    if [[ $? -ne 0 ]]
