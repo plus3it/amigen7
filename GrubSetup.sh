@@ -1,6 +1,8 @@
 #!/bin/sh
 #
 # Script to set up the chroot'ed /etc/fstab
+# - Pass in the name of the EBS device the chroot was built on
+#   top of.
 #
 #################################################################
 CHROOT="${CHROOT:-/mnt/ec2-root}"
@@ -13,6 +15,13 @@ ROOTLN=""
 if [[ $# -lt 1 ]]
 then
    echo "Missing parameter(s). Aborting..." > /dev/stderr
+   exit 1
+fi
+
+# Make sure argument is valid
+if [[ ! -e /sys/block/$(basename ${CHROOTDEV}) ]]
+then
+   echo "Invalid block device provided. Aborting..." > /dev/stderr
    exit 1
 fi
 
@@ -42,8 +51,7 @@ then
    fi
 fi
 
-
-# Create a GRUB2 config file
+# Create and install a GRUB2 config file (etc.)
 chroot ${CHROOT} /sbin/grub2-install ${CHROOTDEV}
 chroot ${CHROOT} /sbin/grub2-mkconfig  > ${CHROOT}/boot/grub2/grub.cfg
 CHROOTKRN=$(chroot $CHROOT rpm --qf '%{version}-%{release}.%{arch}\n' -q kernel)
