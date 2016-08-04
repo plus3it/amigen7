@@ -30,6 +30,8 @@ done
 if [[ $(grep -q ^Storage ${JRNLCNF})$? -ne 0 ]]
 then
    echo 'Storage="persistent"' >> ${JRNLCNF}
+   install -d -m 0755 $CHROOT/var/log/journal
+   chroot $CHROOT systemd-tmpfiles --create --prefix /var/log/journal
 fi
 
 # Set TZ to UTC
