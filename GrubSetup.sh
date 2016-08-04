@@ -23,22 +23,6 @@ then
    printf "$(rpm -q grub2-tools --qf '%{version}-%{release}\n')) "
    printf "was faulty. Manufacturing a ${CHGRUBDEF}.\n"
 
-   ROOTVG=$(lvdisplay ${CHROOTDEV} 2>&1 | awk '/VG Name/{print $3}')
-   if [[ "${ROOTVG}" = "" ]]
-   then
-      PRTLBL=$(e2label /dev/xvda2 2> /dev/null)
-      if [[ "${PRTLBL}" = "" ]]
-      then
-         echo "Can't validate root-dev. Aborting..." > /dev/stderr
-         exit 1
-      else
-         ROOTLN="root=LABEL=${PRTLBL}"
-      fi
-   else
-      echo "Root is LVM-hosted"
-      ROOTLN="root=/dev/${CHROOTDEV}"
-   fi
-
    (
     printf "GRUB_TIMEOUT=5\n"
     printf "GRUB_DISTRIBUTOR=\"$(sed 's, release .*$,,g' /etc/system-release)\"\n"
