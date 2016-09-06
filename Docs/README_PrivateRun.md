@@ -20,7 +20,7 @@ The primary expected use case for these scripts is in a network that is able to 
       ./NetSet.sh ; \
       ./CleanChroot.sh ; \
       ./PreRelabel.sh	 ; \
-      ./UmountChroot.sh
+      ./Umount.sh
 ~~~
 
 In the above:
