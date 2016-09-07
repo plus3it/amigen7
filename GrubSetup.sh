@@ -41,7 +41,8 @@ then
     printf "GRUB_DISABLE_RECOVERY=\"true\"\n"
     printf "GRUB_TERMINAL_OUTPUT=\"console\"\n"
     printf "GRUB_CMDLINE_LINUX=\"vconsole.keymap=us crashkernel=auto "
-    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0\"\n"
+    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0 "
+    printf "fips=1 boot=LABEL=/boot\"\n"
    ) > ${CHGRUBDEF}
 
    if [[ $? -ne 0 ]]
