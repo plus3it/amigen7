@@ -128,6 +128,7 @@ $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort 
     cloud-init \
     cloud-utils-growpart \
     dracut-config-generic \
+    dracut-fips \
     dracut-norescue \
     gdisk \
     grub2 \
