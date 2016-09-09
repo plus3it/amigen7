@@ -15,7 +15,6 @@ The primary expected use case for these scripts is in a network that is able to 
       ./MkTabs.sh /dev/xvdf ; \
       ./ChrootBuild.sh ; \
       ./AWScliSetup.sh ; \
-      ./BindMounts.sh \
       ./ChrootCfg.sh ; \
       ./GrubSetup.sh /dev/xvdf ; \
       ./NetSet.sh ; \
