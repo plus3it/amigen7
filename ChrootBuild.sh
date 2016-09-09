@@ -7,7 +7,6 @@ PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 CONFROOT=$(dirname $0)
 DISABLEREPOS="*media*,*epel*,C*-*,*-source-*,*-debug-*"
-BONUSREPO='*'
 
 function PrepChroot() {
    local REPOPKGS=($(echo \
