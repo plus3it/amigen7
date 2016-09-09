@@ -30,10 +30,10 @@ function PrepChroot() {
    rpm --root ${CHROOT} --initdb
    rpm --root ${CHROOT} -ivh --nodeps /tmp/*.rpm
 
-   yum --enablerepo=* --disablerepo=${DISABLEREPOS} --installroot=${CHROOT} \
-      -y reinstall ${REPOPKGS[@]}
-   yum --enablerepo=* --disablerepo=${DISABLEREPOS} --installroot=${CHROOT} \
-      -y install yum-utils
+   yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
+      --installroot=${CHROOT} -y reinstall ${REPOPKGS[@]}
+   yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
+      --installroot=${CHROOT} -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repo
    if [[ ! -z ${REPORPM+xxx} ]]
