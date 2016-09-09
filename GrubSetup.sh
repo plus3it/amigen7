@@ -53,7 +53,7 @@ then
 fi
 
 # Create and install a GRUB2 config file (etc.)
-chroot ${CHROOT} /sbin/grub2-install ${CHROOTDEV}
-chroot ${CHROOT} /sbin/grub2-mkconfig  > ${CHROOT}/boot/grub2/grub.cfg
+chroot ${CHROOT} /bin/bash -c "/sbin/grub2-install ${CHROOTDEV}"
+chroot ${CHROOT} /bin/bash -c "/sbin/grub2-mkconfig  > /boot/grub2/grub.cfg"
 CHROOTKRN=$(chroot $CHROOT rpm --qf '%{version}-%{release}.%{arch}\n' -q kernel)
 chroot ${CHROOT} dracut -fv /boot/initramfs-${CHROOTKRN}.img ${CHROOTKRN}
