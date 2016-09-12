@@ -30,6 +30,11 @@ function PrepChroot() {
    rpm --root ${CHROOT} --initdb
    rpm --root ${CHROOT} -ivh --nodeps /tmp/*.rpm
 
+   if [[ -z ${BONUSREPO+xxx} ]]
+   then
+      local BONUSREPO='*'
+   fi
+
    yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
       --installroot=${CHROOT} -y reinstall ${REPOPKGS[@]}
    yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
