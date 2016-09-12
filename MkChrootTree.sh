@@ -124,6 +124,7 @@ BINDSOURCES=$(grep -v $CHROOT /proc/mounts | sed '{
                  /dev\/xvd/d
                  /\/user\//d
                  /\/mapper\//d
+                 /^cgroup/d
               }' | awk '{print $2}')
 
 for MOUNT in ${BINDSOURCES}
