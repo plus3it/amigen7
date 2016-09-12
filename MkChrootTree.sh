@@ -119,15 +119,15 @@ chown root:tty ${ALTROOT}/dev/ptmx
 
 
 # Bind-mount everything else
-BINDSOURCES=$(grep -v $CHROOT /proc/mounts | sed '{
+BINDSOURCES=( $(grep -v $CHROOT /proc/mounts | sed '{
                  /rootfs/d
                  /dev\/xvd/d
                  /\/user\//d
                  /\/mapper\//d
                  /^cgroup/d
-              }' | awk '{print $2}')
+              }' | awk '{print $2}' | sort -u) )
 
-for MOUNT in ${BINDSOURCES}
+for MOUNT in ${BINDSOURCES[@]}
 do
    if [[ ! -d ${CHROOT}${MOUNT} ]]
    then
