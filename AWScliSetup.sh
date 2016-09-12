@@ -15,6 +15,7 @@ CHROOT="${CHROOT:-/mnt/ec2-root}"
 BUNDLE="awscli-bundle.zip"
 ZIPSRC="${1:-https://s3.amazonaws.com/aws-cli}"
 EPELRELEASE="${2:-https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm}"
+PRIVREPOS="${3}"
 AWSZIP="/tmp/${BUNDLE}"
 
 # Make sure the AMZN.Linux packages are present
@@ -28,6 +29,12 @@ then
     echo "Aborting..."
    ) > /dev/stderr
    exit 1
+fi
+
+# Enabled requested repos in chroot() environment
+if [[ ! -z ${PRIVREPOS+xxx} ]]
+then
+    chroot "$CHROOT" yum-config-manager --enable "${PRIVREPOS}"
 fi
 
 # Bail if bogus location for ZIP
