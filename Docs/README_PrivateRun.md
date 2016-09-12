@@ -15,6 +15,7 @@ The primary expected use case for these scripts is in a network that is able to 
       ./MkTabs.sh /dev/xvdf ; \
       ./ChrootBuild.sh -r <REPO_FILE_PATH> -b <REPOS_TO_ACTIVATE> ; \
       ./AWScliSetup.sh <CLI_URI_ROOT> <EPEL_FILE_PATH>; \
+      ./BindMounts.sh \
       ./ChrootCfg.sh ; \
       ./GrubSetup.sh /dev/xvdf ; \
       ./NetSet.sh ; \
