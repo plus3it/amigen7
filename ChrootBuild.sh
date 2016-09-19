@@ -62,7 +62,7 @@ function PrepChroot() {
 ######################
 
 # See if we'e passed any valid flags
-OPTIONBUFR=$(getopt -o r:b: --long repouri:bonusrepos: -n ${PROGNAME} -- "$@")
+OPTIONBUFR=$(getopt -o r:b:e: --long repouri:bonusrepos:extras: -n ${PROGNAME} -- "$@")
 eval set -- "${OPTIONBUFR}"
 
 while [[ true ]]
@@ -82,6 +82,19 @@ do
 	 esac
 	 ;;
       -b|--bonusrepos)
+         case "$2" in
+	    "")
+	       echo "Error: option required but not specified" > /dev/stderr
+	       shift 2;
+	       exit 1
+	       ;;
+	    *)
+	       BONUSREPO=${2}
+	       shift 2;
+	       ;;
+	 esac
+	 ;;
+      -e|--extras)
          case "$2" in
 	    "")
 	       echo "Error: option required but not specified" > /dev/stderr
@@ -196,3 +209,12 @@ $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort 
     -NetworkManager \
     -plymouth \
     -sendmail
+
+# Install additionally-requested RPMs
+if [[ ! -z ${EXTRARPMS+xxx} ]]
+then
+   printf "##########\n## Installing requested RPMs/groups\n##########\n"
+   ${YUMCMD} "${EXTRARPMS}"
+else
+   echo "No 'extra' RPMs requested"
+fi
