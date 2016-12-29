@@ -32,7 +32,7 @@ function PrepChroot() {
 
    if [[ -z ${BONUSREPO+xxx} ]]
    then
-      local BONUSREPO='*'
+      local BONUSREPO='base,os,updates,extras,*-base,*-updates,*-extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common'
    fi
 
    yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
