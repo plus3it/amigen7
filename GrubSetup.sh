@@ -41,7 +41,11 @@ then
     printf "GRUB_DISABLE_RECOVERY=\"true\"\n"
     printf "GRUB_TERMINAL_OUTPUT=\"console\"\n"
     printf "GRUB_CMDLINE_LINUX=\"vconsole.keymap=us crashkernel=auto "
-    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0 "
+    # Set GRUB2 vconsole output behavior
+    printf "vconsole.font=latarcyrheb-sun16 rhgb quiet console=ttyS0,115200n8 console=tty0 "
+    # Disable systemd's predictable network interface naming behavior
+    printf "net.ifnames=0 "
+    # Enable FIPS mode ...and make it accept the /boot partition
     printf "fips=1 boot=LABEL=/boot\"\n"
    ) > ${CHGRUBDEF}
 
