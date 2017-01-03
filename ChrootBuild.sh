@@ -13,7 +13,8 @@ function PrepChroot() {
                      $(rpm --qf '%{name}\n' -qf /etc/redhat-release) ; \
                      echo $(rpm --qf '%{name}\n' -qf \
                             /etc/yum.repos.d/* 2>&1 | \
-                            grep -v "not owned" | sort -u)
+                            grep -v "not owned" | sort -u) ; \
+                     echo yum-utils
                    ))
 
    # Do this so that install of chkconfig RPM succeeds
@@ -30,9 +31,12 @@ function PrepChroot() {
    rpm --root ${CHROOT} --initdb
    rpm --root ${CHROOT} -ivh --nodeps /tmp/*.rpm
 
+   # When we don't specify repos, default to a sensible value-list
    if [[ -z ${BONUSREPO+xxx} ]]
    then
       local BONUSREPO='base,os,updates,extras,*-base,*-updates,*-extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common'
+   else
+      DISABLEREPOS="${DISABLERPOS},base,os,updates,extras"
    fi
 
    yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
@@ -43,15 +47,8 @@ function PrepChroot() {
    # if alt-repo defined, disable everything, then install alt-repo
    if [[ ! -z ${REPORPM+xxx} ]]
    then
-      for FILE in ${CHROOT}/etc/yum.repos.d/*.repo
-      do
-         sed -i '{
-	    /^\[/{N
-	       s/\n/&enabled=0\n/
-            }
-	    /^enabled=1/d
-         }' "${FILE}"
-      done
+      chroot $CHROOT yum-config-manager --disable '*'
+      chroot $CHROOT yum-config-manager --enable '${BONUSREPO}'
       rpm --root ${CHROOT} -ivh --nodeps "${REPORPM}"
    fi
 }
@@ -102,7 +99,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       BONUSREPO=${2}
+	       EXTRARPMS=($(echo ${2} | sed 's/,/ /g'))
 	       shift 2;
 	       ;;
 	 esac
@@ -214,7 +211,7 @@ $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort 
 if [[ ! -z ${EXTRARPMS+xxx} ]]
 then
    printf "##########\n## Installing requested RPMs/groups\n##########\n"
-   ${YUMCMD} "${EXTRARPMS}"
+   ${YUMDO} "${EXTRARPMS[@]}"
 else
    echo "No 'extra' RPMs requested"
 fi
