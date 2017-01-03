@@ -36,7 +36,7 @@ function PrepChroot() {
    then
       local BONUSREPO='base,os,updates,extras,*-base,*-updates,*-extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common'
    else
-      DISABLEREPOS="${DISABLERPOS},base,os,updates,extras"
+      DISABLEREPOS="${DISABLEREPOS},base,os,updates,extras"
    fi
 
    yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
