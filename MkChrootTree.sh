@@ -37,8 +37,8 @@ VGNAME=$(lsblk -i -o NAME,TYPE ${LVMDEV} | grep -w lvm | sed 's/^ *.-//' | \
          cut -d "-" -f 1 | uniq)
 
 # Mount filesystems
-if [[ ! -z ${VGNAME+xxx} ]]
-   then
+if [[ ${#VGNAME} -gt 0 ]]
+then
    
    # Ensure all LVM volumes are active
    vgchange -a y ${VGNAME} || err_out 2 "Failed to activate LVM"
