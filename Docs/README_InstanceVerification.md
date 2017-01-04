@@ -1,6 +1,6 @@
 # Verification 
 
-After creating an AMI, it is recommended to launch an instance from the AMI and perform some configuration-verification tasks before publishing the AMI. The ACB AMIs are notable for supporting:
+After creating an AMI, it is recommended to launch an instance from the AMI and perform some configuration-verification tasks before publishing the AMI. The AMIgen-created AMIs are notable for supporting:
 - Use of LVM for managing root (OS) filesystems (to meet STIG and related security guidelines' requirements).
 - Enablement of FIPS 140-2 security mode for the whole OS (to meet STIG and related security guidelines' requirements).
 - Dynamic resizing of root EBS: allows increasing from 20GiB default, only (e.g., to support remote graphical Linux desktop deployments)
