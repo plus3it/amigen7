@@ -2,7 +2,9 @@
 
 After creating an AMI, it is recommended to launch an instance from the AMI and perform some configuration-verification tasks before publishing the AMI. The AMIgen-created AMIs are notable for supporting:
 - Use of LVM for managing root (OS) filesystems (to meet STIG and related security guidelines' requirements).
-- Enablement of FIPS 140-2 security mode for the whole OS (to meet STIG and related security guidelines' requirements).
+- Enablement of FIPS 140-2 security mode for the whole OS from intial-boot onward (to meet STIG and related security guidelines' requirements).
+- Enablement of SELinux in "Enforcing" security mode from intial-boot onward (to meet STIG and related security guidelines' requirements).
+- Enablement of auditing subsystem from intial-boot onward (to meet STIG and related security guidelines' requirements).
 - Dynamic resizing of root EBS: allows increasing from 20GiB default, only (e.g., to support remote graphical Linux desktop deployments)
 - Supporting 10Gbps mode in m4-generation instance-types (inclusive of C3, C4, D2, I2, R3 and newer instance-types).
 - Inclusion of cloud-init for boot-time automated provisioning tasks
