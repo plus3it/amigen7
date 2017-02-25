@@ -120,6 +120,8 @@ chown root:tty ${ALTROOT}/dev/ptmx
 
 # Bind-mount everything else
 BINDSOURCES=( $(grep -v $ALTROOT /proc/mounts | sed '{
+                 /^none/d
+                 /\/tmp/d
                  /rootfs/d
                  /dev\/xvd/d
                  /\/user\//d
@@ -134,5 +136,6 @@ do
       mkdir -p ${ALTROOT}${MOUNT} && \
          echo "Creating ${ALTROOT}${MOUNT}" || break
    fi
+   echo "Bind-mounting ${MOUNT} to ${ALTROOT}${MOUNT}"
    mount -o bind ${MOUNT} ${ALTROOT}${MOUNT}
 done
