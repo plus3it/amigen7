@@ -56,7 +56,7 @@ The following scripts are part of this tool-set. The scripts are listed in the o
     <td valign="top">Do SELinux auto-relabel prior to taking the snapshot. Obviates need for boot-time relabel operation.</td>
   </tr>
   <tr>
-    <td valign="top">UmountChroot.sh</td>
+    <td valign="top">Umount.sh</td>
     <td valign="top">Dismount and deactivate the chroot EBS</td>
   </tr>
 </table>
