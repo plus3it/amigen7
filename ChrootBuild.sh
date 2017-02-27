@@ -34,7 +34,7 @@ function PrepChroot() {
    # When we don't specify repos, default to a sensible value-list
    if [[ -z ${BONUSREPO+xxx} ]]
    then
-      local BONUSREPO='base,os,updates,extras,*-base,*-updates,*-extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common'
+      local BONUSREPO='base,os,updates,extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common'
    else
       DISABLEREPOS="${DISABLEREPOS},base,os,updates,extras"
    fi
