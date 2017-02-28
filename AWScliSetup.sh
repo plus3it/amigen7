@@ -32,10 +32,10 @@ then
 fi
 
 # Enable the RHEL "optional" repo where appropriate
-if [[ $(rpm -q redhat-release-server) ]]
+OPTIONREPO=$(yum repolist all | grep rhel-server-optional | sed 's/\/.*$//')
+if [[ "${OPTIONREPO}" != "" ]]
 then
-   yum-config-manager --enable "*-rhel-server-optional"
-   yum-config-manager --enable "*-rhel-server-optional-rpms"
+   chroot "$CHROOT" yum-config-manager --enable ${OPTIONREPO}
 fi
 
 # Enabled requested repos in chroot() environment
