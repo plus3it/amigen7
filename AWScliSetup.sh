@@ -31,6 +31,13 @@ then
    exit 1
 fi
 
+# Enable the RHEL "optional" repo where appropriate
+if [[ $(rpm -q redhat-release-server) ]]
+then
+   yum-config-manager --enable "*-rhel-server-optional"
+   yum-config-manager --enable "*-rhel-server-optional-rpms"
+fi
+
 # Enabled requested repos in chroot() environment
 if [[ ! -z ${PRIVREPOS+xxx} ]]
 then
