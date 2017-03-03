@@ -6,7 +6,26 @@
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 CONFROOT=$(dirname $0)
-DISABLEREPOS="*media*,*epel*,C*-*,*-source-*,*-debug-*"
+if [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
+then
+   OSREPOS=(
+      rhui-REGION-client-config-server-7
+      rhui-REGION-rhel-server-releases
+      rhui-REGION-rhel-server-rh-common
+      rhui-REGION-rhel-server-optional
+      rhui-REGION-rhel-server-extras
+   )
+elif [[ $(rpm --quiet -q centos-release)$? -eq 0 ]]
+then
+   OSREPOS=(
+      os
+      base
+      updates
+      extras
+   )
+fi
+DEFAULTREPOS=$(printf ",%s" ${OSREPOS[@]} | sed 's/^,//')
+YCM="/bin/yum-config-manager"
 
 function PrepChroot() {
    local REPOPKGS=($(echo \
@@ -34,21 +53,19 @@ function PrepChroot() {
    # When we don't specify repos, default to a sensible value-list
    if [[ -z ${BONUSREPO+xxx} ]]
    then
-      local BONUSREPO='base,os,updates,extras,*-client-config-server-7,*-rhel-server-releases,*-rhel-server-rh-common,*-rhel-server-optional'
-   else
-      DISABLEREPOS="${DISABLEREPOS},base,os,updates,extras"
+      local BONUSREPO=${DEFAULTREPOS}
    fi
 
-   yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
-      --installroot=${CHROOT} -y reinstall ${REPOPKGS[@]}
-   yum --enablerepo=${BONUSREPO} --disablerepo=${DISABLEREPOS} \
-      --installroot=${CHROOT} -y install yum-utils
+   yum --enablerepo=${BONUSREPO} --installroot=${CHROOT} \
+      -y reinstall ${REPOPKGS[@]}
+   yum --enablerepo=${BONUSREPO} --installroot=${CHROOT} \
+      -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repo
-   if [[ ! -z ${REPORPM+xxx} ]]
+   if [[ ! -z ${REPORPM+xxx} ]] && [[ -x ${CHOORT}/${YCM} ]]
    then
-      chroot $CHROOT yum-config-manager --disable '*'
-      chroot $CHROOT yum-config-manager --enable '${BONUSREPO}'
+      chroot $CHROOT ${YCM} --disable '*'
+      chroot $CHROOT ${YCM} --enable '${BONUSREPO}'
       rpm --root ${CHROOT} -ivh --nodeps "${REPORPM}"
    fi
 }
@@ -127,16 +144,10 @@ else
 fi
 
 # Activate repos in the chroot...
-TOACTIVATE=($(chroot $CHROOT yum --enablerepo=* \
-               --disablerepo="${DISABLEREPOS}" repolist | \
-               sed -e '1,/^repo id/d' -e '/^repolist:/d' -e 's/\/.*$//'))
-CHROOTREPOS=$(echo "${TOACTIVATE[@]}" | sed -e 's/\s/,/g')
-
-
-chroot $CHROOT yum-config-manager --enable ${CHROOTREPOS}
+chroot $CHROOT ${YCM} --enable ${BONUSREPO}
 
 # Install main RPM-groups
-${YUMDO} "${DISABLEREPOS}" @core -- \
+${YUMDO} @core -- \
 $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
     authconfig \
     chrony \
