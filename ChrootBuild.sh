@@ -56,16 +56,14 @@ function PrepChroot() {
       local BONUSREPO=${DEFAULTREPOS}
    fi
 
-   yum --enablerepo=${BONUSREPO} --installroot=${CHROOT} \
-      -y reinstall ${REPOPKGS[@]}
-   yum --enablerepo=${BONUSREPO} --installroot=${CHROOT} \
-      -y install yum-utils
+   yum --disablerepo="*" --enablerepo=${BONUSREPO} \
+      --installroot=${CHROOT} -y reinstall ${REPOPKGS[@]}
+   yum --disablerepo="*" --enablerepo=${BONUSREPO} \
+      --installroot=${CHROOT} -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repo
-   if [[ ! -z ${REPORPM+xxx} ]] && [[ -x ${CHOORT}/${YCM} ]]
+   if [[ ! -z ${REPORPM+xxx} ]]
    then
-      chroot $CHROOT ${YCM} --disable '*'
-      chroot $CHROOT ${YCM} --enable '${BONUSREPO}'
       rpm --root ${CHROOT} -ivh --nodeps "${REPORPM}"
    fi
 }
@@ -138,12 +136,13 @@ PrepChroot
 if [[ ! -z ${BONUSREPO+xxx} ]]
 then
    ENABREPO=--enablerepo="${BONUSREPO}"
-   YUMDO="yum --nogpgcheck --installroot=${CHROOT} ${ENABREPO} install -y"
+   YUMDO="yum --nogpgcheck --installroot=${CHROOT} --disablerepo="*" ${ENABREPO} install -y"
 else
    YUMDO="yum --nogpgcheck --installroot=${CHROOT} install -y"
 fi
 
 # Activate repos in the chroot...
+chroot $CHROOT ${YCM} --disable "*"
 chroot $CHROOT ${YCM} --enable ${BONUSREPO}
 
 # Install main RPM-groups
