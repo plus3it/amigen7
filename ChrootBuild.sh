@@ -53,7 +53,7 @@ function PrepChroot() {
    # When we don't specify repos, default to a sensible value-list
    if [[ -z ${BONUSREPO+xxx} ]]
    then
-      local BONUSREPO=${DEFAULTREPOS}
+      BONUSREPO=${DEFAULTREPOS}
    fi
 
    yum --disablerepo="*" --enablerepo=${BONUSREPO} \
