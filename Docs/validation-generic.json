@@ -1,0 +1,46 @@
+[
+  {
+    "ParameterKey": "AmiDistro",
+    "ParameterValue": "__DISTRO__"
+  },
+  {
+    "ParameterKey": "AmiId",
+    "ParameterValue": "__AMIID__"
+  },
+  {
+    "ParameterKey": "BucketName",
+    "ParameterValue": "__BUKKITNAME__"
+  },
+  {
+    "ParameterKey": "InstanceRole",
+    "ParameterValue": "__INSTANCEROLE__"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "m4.large"
+  },
+  {
+    "ParameterKey": "KeyPairName",
+    "ParameterValue": "__KEYNAME__"
+  },
+  {
+    "ParameterKey": "NoPublicIp",
+    "ParameterValue": "false"
+  },
+  {
+    "ParameterKey": "NoReboot",
+    "ParameterValue": "true"
+  },
+  {
+    "ParameterKey": "RootEBSsize",
+    "ParameterValue": "25"
+  },
+  {
+    "ParameterKey": "SecurityGroupIds",
+    "ParameterValue": "__SGID__"
+  },
+  {
+    "ParameterKey": "SubnetIds",
+    "ParameterValue": "__SUBNETID__"
+  }
+]
