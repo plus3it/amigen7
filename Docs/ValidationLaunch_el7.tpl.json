@@ -1,0 +1,396 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template deploys an instance suitable for running AMI validation-tests against.",
+  "Parameters": {
+    "AmiId": {
+      "Description": "ID of the AMI to launch",
+      "ConstraintDescription": "All ID's must start 'ami-' followed by an 8- to 17-character alphanumeric string.",
+      "Type": "String",
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$"
+    },
+    "AmiDistro": {
+      "Description": "Linux distro of the AMI",
+      "Type": "String",
+      "Default": "CentOS",
+      "AllowedValues": [
+        "CentOS",
+        "RedHat"
+      ]
+    },
+    "InstanceRole" : {
+      "Description" : "IAM instance role to apply to the instance(s)",
+      "Type" : "String",
+      "Default" : ""
+    },
+    "BucketName" : {
+      "Description" : "Name of the S3 bucket hosting the audit-artifacts.",
+      "Type" : "String",
+      "Default" : ""
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "InstanceType": {
+      "Description": "Amazon EC2 instance type",
+      "ConstraintDescription": "must be a valid EC2 instance type.",
+      "Type": "String",
+      "Default": "m4.large",
+      "AllowedValues": [
+        "t2.micro",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "d2.large",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge",
+        "i2.xlarge",
+        "i2.2xlarge",
+        "i2.4xlarge",
+        "i2.8xlarge",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge"
+      ]
+    },
+    "NoPublicIp": {
+      "Description": "Controls whether to assign the instance a public IP. Recommended to leave at \"true\" _unless_ launching in a public subnet",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
+    },
+    "NoReboot": {
+      "Description": "Controls whether to reboot the instance as the last step of cfn-init execution",
+      "Type": "String",
+      "Default": "true",
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
+    },
+    "SecurityGroupIds": {
+      "Description": "List of security groups to apply to the instance(s)",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "SubnetIds": {
+      "Type": "String",
+      "Description": "Subnet to associate to the Instance"
+    },
+    "RootEBSsize": {
+      "Description": "Select size of root EBS volume (in GiB)",
+      "ConstraintDescription": "A numeric value > '20' and < '50'.",
+      "Type": "Number",
+      "Default": "25",
+      "MinValue": "21",
+      "MaxValue": "49"
+    }
+  },
+  "Conditions": {
+    "AssignInstanceRole" :
+    {
+      "Fn::Not" : [
+        {
+          "Fn::Equals" : [
+            {
+              "Ref" : "InstanceRole"
+            },
+            ""
+          ]
+        }
+      ]
+    },
+    "Reboot": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "NoReboot"
+            },
+            "true"
+          ]
+        }
+      ]
+    },
+    "AssignPublicIp": {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "NoPublicIp"
+            },
+            "true"
+          ]
+        }
+      ]
+    }
+  },
+  "Mappings": {
+    "Distro2RootDevice": {
+      "RedHat": {
+        "DeviceName": "sda1"
+      },
+      "CentOS": {
+        "DeviceName": "sda1"
+      }
+    }
+  },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "EC2 Instance Configuration"
+          },
+          "Parameters": [
+            "AmiId",
+            "AmiDistro",
+            "InstanceType",
+            "InstanceRole",
+            "KeyPairName",
+            "NoReboot",
+            "RootEBSsize"
+          ]
+        },
+        {
+          "Label": {
+            "default": "Network Configuration"
+          },
+          "Parameters": [
+            "SubnetIds",
+            "SecurityGroupIds",
+            "NoPublicIp"
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "ValidationInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "AmiId"
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "IamInstanceProfile" : {
+          "Fn::If" : [
+            "AssignInstanceRole",
+            { "Ref" : "InstanceRole" },
+            { "Ref" : "AWS::NoValue" }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "AWS::StackName"
+                  }
+                ]
+              ]
+            }
+          }
+        ],
+        "BlockDeviceMappings": [
+          {
+            "DeviceName": {
+              "Fn::Join": [
+                "",
+                [
+                  "/dev/",
+                  {
+                    "Fn::FindInMap": [
+                      "Distro2RootDevice",
+                      {
+                        "Ref": "AmiDistro"
+                      },
+                      "DeviceName"
+                    ]
+                  }
+                ]
+              ]
+            },
+            "Ebs": {
+              "VolumeType": "gp2",
+              "VolumeSize" : {
+                "Ref": "RootEBSsize"
+              },
+              "DeleteOnTermination": "true"
+            }
+          }
+        ],
+        "KeyName": {
+          "Ref": "KeyPairName"
+        },
+        "NetworkInterfaces": [
+          {
+            "DeviceIndex": "0",
+            "AssociatePublicIpAddress": {
+              "Fn::If": [
+                "AssignPublicIp",
+                "true",
+                "false"
+              ]
+            },
+            "GroupSet": {
+              "Ref": "SecurityGroupIds"
+            },
+            "SubnetId": {
+              "Ref": "SubnetIds"
+            }
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#cloud-config\n",
+                "\n",
+                "users:\n",
+                "  - default\n",
+                "  - name: testusr0\n",
+                "    ssh-authorized-keys:\n",
+                "    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQDbwH7xQhVtZTU2JC8k7WqV1JXxCDlHpVOShgFVJkSMkWb1WFX4601LWCPBTlpZnyJBmfEurFA/GVckiXWJM4RvtBDBILxONrqic8bSIn4mo0L+rKYmwxuw6u31e0y23JSGQOCOZOoUOgA1BKw+99FNHbFkLI2+9qJlk+JsEcf5NQ== testusr0\n",
+                "    groups: wheel\n",
+                "    lock-passwd: True\n",
+                "    selinux-user: unconfined_u\n",
+                "  - name: testusr0\n",
+                "    ssh-authorized-keys:\n",
+                "    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQC/7f14gKpcqYVW0FNe7nlJ+kFV2gtZpznjGEN9+2CiWaQrKBcUUhTuxBJw5Clwa1jG5rvOycyE7QNM2nPHExhWfKsqUWK3V1M+WqMZ0oA/mOuUkyLv7S7Ivzq2G0P9LSYBa4GSNZis+ksJY5ZIAGSbQrN4tMu1ak9v658I7M2u0Q== testusr1\n",
+                "    groups: wheel\n",
+                "    lock-passwd: True\n",
+                "    selinux-user: unconfined_u\n",
+                "package_upgrade: True\n",
+                "write_files:\n",
+                "  - path: /var/tmp/fixup.sh\n",
+                "    content: |-\n",
+                "        #!/bin/sh\n",
+                "        AMIID=$(curl http://169.254.169.254/latest/meta-data/ami-id/)\n",
+                "        AMIDATE=$(rpm -q --qf '%{installtime:date}' basesystem | ",
+                           "awk '{printf(\"%s%s%s\\n\",$4,$3,$2)}')\n",
+                "        \n",
+                "        for DEV in $(lsblk -ln | awk '/ part /{ print $1}')\n",
+                "        do\n",
+                "           pvresize /dev/${DEV}\n",
+                "        done\n",
+                "        \n",
+                "        sed -i '/fixup\\.sh/d' /etc/rc.d/rc.local\n",
+                "        chmod 644 /etc/rc.d/rc.local\n",
+                "        \n",
+                "        rm $0\n",
+                "        \n",
+                "        (\n",
+                "         printf \"Check 10Gbps support: \"\n",
+                "         if [[ $(ethtool eth0 | awk '/Speed:/{ print $2}') = \"10000Mb/s\" ]]\n",
+                "         then\n",
+                "            echo \"Found 10Gbps support\"\n",
+                "         else\n",
+                "            echo \"10Gbps support not found\"\n",
+                "            RETVAL=1\n",
+                "         fi\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         printf \"Check EBS-resizing: \"\n",
+                "         if [[ $(vgs --noheadings -o pv_free | sed 's/ //g') = 0 ]]\n",
+                "         then\n",
+                "            echo \"Root EBS was not resized\"\n",
+                "            RETVAL=1\n",
+                "         else\n",
+                "            echo \"Root EBS was resized\"\n",
+                "         fi\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         echo \"Check for AWS packages:\"\n",
+                "         rpm -qa | grep -E \"(aws|ec2)\" | sed 's/^/   /'\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         echo \"Check AWS CLI version:\"\n",
+                "         aws --version 2>&1 | sed 's/^/   /'\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         echo \"Check RPM repo-access:\"\n",
+                "         yum repolist all 2> /dev/null | sed -n '/^repo id/,$p'\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         echo \"Active swap device(s): \"\n",
+                "         sed '1d' /proc/swaps | awk '/partition/{print $1}' | sed 's/^/   /'\n",
+                "         echo \"==========\"\n",
+                "         grep -q '/boot' /proc/mounts && ",
+                "         echo \"Mounted partition for /boot was found\" || ",
+                "         echo \"Mounted partition for /boot is missing\"\n",
+                "         echo \"==========\"\n",
+                "         grep -q '/tmp.*tmpfs' /proc/mounts && ",
+                "         echo \"/tmp is mounted from tmpfs\" || ",
+                "         echo \"/tmp is mounted not from tmpfs\"\n",
+                "         echo \"==========\"\n",
+                "         echo \"Check booted kernel: \"\n",
+                "         rpm -qi kernel-$(uname -r) | sed 's/^/   /' \n",
+                "         echo \"==========\"\n",
+                "         printf \"Check SELinux mode: \"\n",
+                "         getenforce\n",
+                "         echo \"==========\"\n",
+                "         printf \"Check FIPS mode: \"\n",
+                "         if [[ $(grep 0 /proc/sys/crypto/fips_enabled)$?",
+                "           -eq 1 ]]\n",
+                "         then\n",
+                "            echo \"Enabled\"\n",
+                "         else\n",
+                "            echo \"Disabled\"\n",
+                "         fi\n",
+                "         echo \"==========\"\n",
+                "        \n",
+                "         printf \"Check Xen root-dev mapping: \"\n",
+                "         if [[ $(grep -q xen_blk /boot/grub/grub.conf) -eq 0 ]]\n",
+                "         then\n",
+                "            echo \"enabled\"\n",
+                "         else\n",
+                "            echo \"not enabled\"\n",
+                "            RETVAL=1\n",
+                "         fi\n",
+                "        ) > /tmp/audit_${AMIID}-${AMIDATE}.txt\n",
+                "        aws s3 cp /tmp/audit_${AMIID}-${AMIDATE}.txt ",
+                            "s3://",
+                                 { "Ref" : "BucketName" }, 
+                                                          "/artifacts/validation/\n",
+                "    owner: root:root\n",
+                "    permissions: '0755'\n",
+                "runcmd:\n",
+                "  - parted -s /dev/xvda rm 2 mkpart primary ext4 500m 100%\n",
+                "  - partprobe\n",
+                "  - echo /var/tmp/fixup.sh >> /etc/rc.d/rc.local\n",
+                "  - chmod 755 /etc/rc.d/rc.local\n",
+                "  - init 6\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+        }
+      }
+    }
+  }
+}
