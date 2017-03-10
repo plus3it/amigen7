@@ -1,5 +1,7 @@
 # Verification 
 
+_Note_: This document describes steps for manually validating AMIs produced with AMIgen. Automated procuedures - supplemented with CloudFormation templates and other AWS components - are described in the [Automated Validation document](README_automated_validation.md).
+
 After creating an AMI, it is recommended to launch an instance from the AMI and perform some configuration-verification tasks before publishing the AMI. The AMIgen-created AMIs are notable for supporting:
 - Use of LVM for managing root (OS) filesystems (to meet STIG and related security guidelines' requirements).
 - Enablement of FIPS 140-2 security mode for the whole OS from intial-boot onward (to meet STIG and related security guidelines' requirements).
@@ -46,18 +48,7 @@ write_files:
 packages:
   - git
 runcmd:
-  - |-
-      echo "d
-      2
-      n
-      p
-      2
-      
-      
-      t
-      2
-      8e
-      w"  | fdisk /dev/xvda
+  - parted -s /dev/xvda rm 2 mkpart primary ext4 500m 100%
   - partprobe
   - chmod 755 /etc/rc.d/rc.local
   - echo "/etc/rc.d/diskgrow.sh" >> /etc/rc.d/rc.local
@@ -98,7 +89,7 @@ If present, this will cause the instance to do a `yum upgrade -y` type of action
 
 ### `runcmd` Section:
 As prototyped this section will:
-- Use the `fdisk` utility to resize the partition conatining the LVM2 volume-group that contains toe root filesystems.
+- Use the `parted` utility to resize (via a delete and recreation method) the partition conatining the LVM2 volume-group that, in turn, contains the root filesystems.
 - Use `partprobe` to request the kernel to reread its partition table.
 - Make the `/etc/rc.d/rc.local` executable so that it will be run at next boot.
 - Append the `/etc/rc.d/diskgrow.sh` command to the end of the `/etc/rc.d/rc.local` script so that it will be executed at next boot.
