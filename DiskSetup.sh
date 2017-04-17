@@ -48,6 +48,9 @@ function CarveLVM() {
    parted -s ${CHROOTDEV} -- mklabel msdos mkpart primary ext4 2048s ${BOOTDEVSZ} \
       mkpart primary ext4 ${BOOTDEVSZ} 100% set 2 lvm
 
+   # Stop/umount boot device, in case parted/udev/systemd managed to remount it
+   systemctl stop "${BOOTLABEL}"
+
    # Create LVM objects
    vgcreate -y ${VGNAME} ${CHROOTDEV}2 || LogBrk 5 "VG creation failed. Aborting!"
    lvcreate --yes -W y -L ${ROOTVOL[1]} -n ${ROOTVOL[0]} ${VGNAME} || LVCSTAT=1
@@ -58,14 +61,14 @@ function CarveLVM() {
    lvcreate --yes -W y -l ${AUDVOL[1]} -n ${AUDVOL[0]} ${VGNAME} || LVCSTAT=1
 
    # Create filesystems
-   mkfs -t ext4 -L "${BOOTLABEL}" ${CHROOTDEV}1 || err_exit "Failure creating filesystem - /boot" 
-   mkfs -t ext4 /dev/${VGNAME}/${ROOTVOL[0]} || err_exit "Failure creating filesystem - /" 
-   mkfs -t ext4 /dev/${VGNAME}/${HOMEVOL[0]} || err_exit "Failure creating filesystem - /home" 
-   mkfs -t ext4 /dev/${VGNAME}/${VARVOL[0]} || err_exit "Failure creating filesystem - /var" 
-   mkfs -t ext4 /dev/${VGNAME}/${LOGVOL[0]} || err_exit "Failure creating filesystem - /var/log" 
-   mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]} || err_exit "Failure creating filesystem - /var/log/audit" 
+   mkfs -t ext4 -L "${BOOTLABEL}" ${CHROOTDEV}1 || err_exit "Failure creating filesystem - /boot"
+   mkfs -t ext4 /dev/${VGNAME}/${ROOTVOL[0]} || err_exit "Failure creating filesystem - /"
+   mkfs -t ext4 /dev/${VGNAME}/${HOMEVOL[0]} || err_exit "Failure creating filesystem - /home"
+   mkfs -t ext4 /dev/${VGNAME}/${VARVOL[0]} || err_exit "Failure creating filesystem - /var"
+   mkfs -t ext4 /dev/${VGNAME}/${LOGVOL[0]} || err_exit "Failure creating filesystem - /var/log"
+   mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]} || err_exit "Failure creating filesystem - /var/log/audit"
    mkswap /dev/${VGNAME}/${SWAPVOL[0]}
-   
+
    if [[ $(e2label ${CHROOTDEV}1) != ${BOOTLABEL} ]]
    then
       e2label ${CHROOTDEV}1 "${BOOTLABEL}" || \
