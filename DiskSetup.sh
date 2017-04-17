@@ -6,6 +6,13 @@
 PROGNAME=$(basename "$0")
 BOOTDEVSZ="500m"
 
+# Error-logging
+function err_exit {
+   echo "${1}" > /dev/stderr
+   logger -t ${PROGNAME} -p kern.crit "${1}"
+   exit 1
+}
+
 # Check for arguments
 if [[ $# -lt 1 ]]
 then
@@ -51,13 +58,19 @@ function CarveLVM() {
    lvcreate --yes -W y -l ${AUDVOL[1]} -n ${AUDVOL[0]} ${VGNAME} || LVCSTAT=1
 
    # Create filesystems
-   mkfs -t ext4 -L "${BOOTLABEL}" ${CHROOTDEV}1
-   mkfs -t ext4 /dev/${VGNAME}/${ROOTVOL[0]}
-   mkfs -t ext4 /dev/${VGNAME}/${HOMEVOL[0]}
-   mkfs -t ext4 /dev/${VGNAME}/${VARVOL[0]}
-   mkfs -t ext4 /dev/${VGNAME}/${LOGVOL[0]}
-   mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]}
+   mkfs -t ext4 -L "${BOOTLABEL}" ${CHROOTDEV}1 || err_exit "Failure creating filesystem - /boot" 
+   mkfs -t ext4 /dev/${VGNAME}/${ROOTVOL[0]} || err_exit "Failure creating filesystem - /" 
+   mkfs -t ext4 /dev/${VGNAME}/${HOMEVOL[0]} || err_exit "Failure creating filesystem - /home" 
+   mkfs -t ext4 /dev/${VGNAME}/${VARVOL[0]} || err_exit "Failure creating filesystem - /var" 
+   mkfs -t ext4 /dev/${VGNAME}/${LOGVOL[0]} || err_exit "Failure creating filesystem - /var/log" 
+   mkfs -t ext4 /dev/${VGNAME}/${AUDVOL[0]} || err_exit "Failure creating filesystem - /var/log/audit" 
    mkswap /dev/${VGNAME}/${SWAPVOL[0]}
+   
+   if [[ $(e2label ${CHROOTDEV}1) != ${BOOTLABEL} ]]
+   then
+      e2label ${CHROOTDEV}1 "${BOOTLABEL}" || \
+         err_exit "Failed to apply desired label to ${CHROOTDEV}1"
+   fi
 }
 
 # Partition with no LVM
