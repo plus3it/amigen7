@@ -49,7 +49,10 @@ function CarveLVM() {
       mkpart primary ext4 ${BOOTDEVSZ} 100% set 2 lvm
 
    # Stop/umount boot device, in case parted/udev/systemd managed to remount it
-   systemctl stop "${BOOTLABEL}"
+   if [[ $(systemctl is-active boot.mount > /dev/null 2>&1)$? -eq 0 ]]
+   then
+      systemctl stop boot.mount
+   fi
 
    # Create LVM objects
    vgcreate -y ${VGNAME} ${CHROOTDEV}2 || LogBrk 5 "VG creation failed. Aborting!"
