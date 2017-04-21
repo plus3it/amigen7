@@ -1,0 +1,86 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template sets up the IAM role needed for automated instance-validation.",
+  "Parameters": {
+    "ValidationBucket": {
+      "Description": "S3 Bucket to host automated instance-validation artifacts.",
+      "Type": "String",
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$"
+    }
+  },
+  "Resources": {
+    "InstancePolicy" : {
+      "Type": "AWS::IAM::ManagedPolicy",
+      "Properties": {
+        "Description" : "Policy to provide instance-level access to needed AWS-level resources",
+        "Path" : "/",
+        "PolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Action": [
+                "s3:*"
+              ],
+              "Resource": [
+                { "Fn::Join" : [ "", [
+                  "arn:aws:s3:::",
+                    { "Ref" : "ValidationBucket" },
+                    ""
+                ]]},
+                { "Fn::Join" : [ "", [
+                  "arn:aws:s3:::",
+                    { "Ref" : "ValidationBucket" },
+                    "/*"
+                ]]}
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStackResource"
+              ],
+              "Resource": [
+                "*"
+              ]
+            }
+          ]
+        },
+        "Roles": [{ "Ref" : "InstanceRole" }]
+      }
+    },
+    "InstanceRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Action": "sts:AssumeRole",
+            "Effect": "Allow",
+            "Principal": {
+              "Service": "ec2.amazonaws.com"
+            }
+          }]
+        },
+        "Path": "/"
+      }
+    },
+    "InstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "Path": "/",
+        "Roles": [ { "Ref" : "InstanceRole" } ]
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceRole": {
+      "Value": { "Ref" : "InstanceRole" },
+      "Description" : "Name of the instance role"
+    },
+    "InstanceRoleArn" : {
+      "Value": { "Fn::GetAtt" : [ "InstanceRole", "Arn" ] },
+      "Description" : "ARN of the instance role"
+    }
+  }
+}
