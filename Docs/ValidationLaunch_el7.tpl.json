@@ -89,7 +89,7 @@
       "Type": "List<AWS::EC2::SecurityGroup::Id>"
     },
     "SubnetIds": {
-      "Type": "String",
+      "Type": "AWS::EC2::Subnet::Id",
       "Description": "Subnet to associate to the Instance"
     },
     "RootEBSsize": {
