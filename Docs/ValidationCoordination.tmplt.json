@@ -1,0 +1,131 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "This template coordinates the running of the validation IAM and EC2 templates to fully automate a validation-run.",
+  "Parameters": {
+    "AmiId": {
+      "Description": "ID of the AMI to launch",
+      "ConstraintDescription": "All ID's must start 'ami-' followed by an 8- to 17-character alphanumeric string.",
+      "Type": "String",
+      "AllowedPattern": "^ami-[0-9a-z]{8}$|^ami-[0-9a-z]{17}$"
+    },
+    "AmiDistro": {
+      "Description": "Linux distro of the AMI",
+      "Type": "String",
+      "Default": "CentOS",
+      "AllowedValues": [
+        "CentOS",
+        "RedHat"
+      ]
+    },
+    "InstanceType": {
+      "Description": "Amazon EC2 instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "c4.large",
+        "m4.large",
+        "r3.2xlarge"
+      ]
+    },
+    "KeyPairName": {
+      "Description": "Public/private key pairs allow you to securely connect to your instance after it launches",
+      "Type": "AWS::EC2::KeyPair::KeyName"
+    },
+    "PrivIpOnly": {
+      "Description": "Controls whether to assign the instance a public IP. \"true\" means \"do not assign public IP address\"",
+      "Type": "String",
+      "Default": "false",
+      "AllowedValues": [
+        "false",
+        "true"
+      ]
+    },
+    "RootVolumeSize": {
+      "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
+      "Type": "Number",
+      "Default": "10",
+      "MinValue": "5",
+      "MaxValue": "16384",
+      "ConstraintDescription": "Must be between 5GB and 16384GB."
+    },
+    "SecurityGroups": {
+      "Description": "List of security groups to apply to the instance(s)",
+      "Type": "List<AWS::EC2::SecurityGroup::Id>"
+    },
+    "SubnetId": {
+      "Description": "Subnet to associate to the Instance",
+      "Type": "AWS::EC2::Subnet::Id"
+    },
+    "TemplateUrlEc2": {
+      "Description": "URL of the child template for the validator EC2 instance.",
+      "Type": "String",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
+    "TemplateUrlIam": {
+      "Description": "URL of the child template for the validator IAM objects.",
+      "Type": "String",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
+    "ValidationBucket": {
+      "Description": "S3 Bucket to host automated instance-validation artifacts.",
+      "Type": "String",
+      "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$"
+    }
+  },
+  "Resources": {
+    "ValidatorIAM": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": { "Ref": "TemplateUrlIam" },
+        "Parameters": {
+          "ValidationBucket": { "Ref": "ValidationBucket" }
+        },
+        "TimeoutInMinutes": "10"
+      }
+    },
+    "ValidatorEC2": {
+      "Type": "AWS::CloudFormation::Stack",
+      "Properties": {
+        "TemplateURL": { "Ref": "TemplateUrlEc2" },
+        "Parameters": {
+          "AmiId": { "Ref": "AmiId" },
+          "AmiDistro": { "Ref": "AmiDistro" },
+          "InstanceRole" : {
+            "Fn::GetAtt" : [
+              "ValidatorIAM", "Outputs.InstanceRoleProfile"
+            ]
+          },
+          "BucketName": { "Ref": "ValidationBucket" },
+          "KeyPairName": { "Ref": "KeyPairName" },
+          "InstanceType": { "Ref": "InstanceType"},
+          "NoPublicIp": { "Ref": "PrivIpOnly" },
+          "NoReboot": "true",
+          "SecurityGroupIds": {
+            "Fn::Join": [
+              ",",
+              { "Ref": "SecurityGroups" }
+            ]
+          },
+          "SubnetIds": { "Ref": "SubnetId" },
+          "RootEBSsize": { "Ref": "RootVolumeSize" }
+        },
+        "TimeoutInMinutes": "10"
+      },
+      "DependsOn" : "ValidatorIAM"
+    }
+  },
+  "Outputs": {
+    "StackRef": {
+      "Value": {
+        "Ref": "ValidatorIAM"
+      }
+    },
+    "OutputFromNestedStack": {
+      "Value": { "Fn::GetAtt": [ "ValidatorIAM", "Outputs.InstanceRole" ] }
+    }
+  }
+}
