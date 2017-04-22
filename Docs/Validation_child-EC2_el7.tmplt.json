@@ -17,6 +17,12 @@
         "RedHat"
       ]
     },
+    "CfnEndpointUrl": {
+      "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
     "InstanceRole" : {
       "Description" : "IAM instance role to apply to the instance(s)",
       "Type" : "String",
@@ -115,6 +121,18 @@
         }
       ]
     },
+    "UseCfnUrl" : {
+      "Fn::Not": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "CfnEndpointUrl"
+            },
+            ""
+          ]
+        }
+      ]
+    },
     "Reboot": {
       "Fn::Not": [
         {
@@ -183,6 +201,107 @@
   "Resources": {
     "ValidationInstance": {
       "Type": "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+            "files": {
+              "/etc/cfn/cfn-hup.conf" : {
+                "content" : {
+                   "Fn::Join" : ["", [
+                     "[main]\n",
+                     "stack=", { "Ref" : "AWS::StackId" }, "\n",
+                     "region=", { "Ref" : "AWS::Region" }, "\n",
+                     {
+                       "Fn::If" : [
+                         "AssignInstanceRole", {
+                           "Fn::Join" : [ "", [
+                             "role=",
+                             { "Ref" : "InstanceRole" },
+                             "\n"
+                           ]]
+                         },
+                         ""
+                       ]
+                     },
+                     {
+                       "Fn::If" : [
+                         "AssignInstanceRole", {
+                           "Fn::Join" : [ "", [
+                             "url=",
+                             { "Ref" : "CfnEndpointUrl" },
+                             "\n"
+                           ]]
+                         },
+                         ""
+                       ]
+                     }
+                   ]]
+                },
+                "mode" : "000400",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+                "content" : {
+                  "Fn::Join" : ["", [
+                    "[cfn-auto-reloader-hook]\n",
+                    "triggers=post.update\n",
+                    "path=Resources.ValidationInstance.Metadata\n",
+                    "action=/opt/aws/bin/cfn-init -v -c update",
+                    " --stack ", { "Ref" : "AWS::StackName" },
+                    " --resource ValidationInstance",
+                    {
+                      "Fn::If" : [
+                        "AssignInstanceRole",
+                        {
+                          "Fn::Join" : [ "", [
+                            " --role ",
+                            { "Ref" : "InstanceRole" }
+                          ]]
+                        },
+                        ""
+                      ]
+                    },
+                    {
+                      "Fn::If" : [
+                        "UseCfnUrl",
+                        {
+                          "Fn::Join" : [ "", [
+                            " --url ",
+                            { "Ref" : "CfnEndpointUrl" }
+                          ]]
+                        },
+                        ""
+                      ]
+                    }
+                  ]]
+                },
+                "mode" : "000400",
+                "owner" : "root",
+                "group" : "root"
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "cfn-hup" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "true",
+                  "files" : [
+                    "/etc/cfn/cfn-hup.conf",
+                    "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": "1",
+          "Timeout": "PT30M"
+        }
+      },
       "Properties": {
         "ImageId": {
           "Ref": "AmiId"
@@ -375,21 +494,56 @@
                             "s3://",
                                  { "Ref" : "BucketName" }, 
                                                           "/artifacts/validation/\n",
+                "        \n",
+                "        # Signal Cfn that we're good\n",
+                "        /opt/aws/bin/cfn-signal -e 0 --stack ",
+                          { "Ref" : "AWS::StackName" },
+                          " --resource ValidationInstance --url ",
+                          { "Ref" : "CfnEndpointUrl" },
+                          "\n",
+
                 "    owner: root:root\n",
                 "    permissions: '0755'\n",
                 "runcmd:\n",
-                "  - parted -s /dev/xvda rm 2 mkpart primary ext4 500m 100%\n",
-                "  - partprobe\n",
-                "  - echo /var/tmp/fixup.sh >> /etc/rc.d/rc.local\n",
-                "  - chmod 755 /etc/rc.d/rc.local\n",
-                "  - init 6\n"
+                "  - |\n",
+                "      \n",
+                "      # Error-handler function\n",
+                "      function error_exit {\n",
+                "         /opt/aws/bin/cfn-signal -e 1 --stack ",
+                             { "Ref" : "AWS::StackName" },
+                             " --resource ValidationInstance\n",
+                "         exit 1\n",
+                "      }\n",
+                "      \n",
+                "      # Install missing RPMs\n",
+                "      yum --enablerepo=*epel install -y pystache ",
+                        "python2-pip || error_exit 'Failed to install ",
+                        "dependent RPMs'\n",
+                "      \n",
+                "      # Initialize the Cfn subsystems\n",
+                "      /opt/aws/bin/cfn-init -s ",
+                        { "Ref" : "AWS::StackName" },
+                                 " -r ValidationInstance ",
+                        " --region ",
+                         { "Ref" : "AWS::Region" },
+                         " && echo 'Successfully ran cfn-init.'",
+                         " || error_exit 'Failed to run cfn-init.' > /dev/stderr\n",
+                "      \n",
+                "      # Disk re-size tasks\n",
+                "      parted -s /dev/xvda rm 2 mkpart primary ext4 500m ",
+                        "100%\n",
+                "      partprobe\n",
+                "      \n",
+                "      # Run-once setup\n",
+                "      echo /var/tmp/fixup.sh >> /etc/rc.d/rc.local || ",
+                        "error_exit 'could not add fixup.sh to the ",
+                        "system run-once script.'\n",
+                "      chmod 755 /etc/rc.d/rc.local || error_exit '",
+                        "failed to set mode on the rc.local file.'\n",
+                "      init 6\n"
               ]
             ]
           }
-        }
-      },
-      "Metadata": {
-        "AWS::CloudFormation::Init": {
         }
       }
     }
