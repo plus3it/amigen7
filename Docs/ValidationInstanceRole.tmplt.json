@@ -20,25 +20,41 @@
             {
               "Effect": "Allow",
               "Action": [
-                "s3:*"
+                "s3:ListBucket"
               ],
               "Resource": [
                 { "Fn::Join" : [ "", [
                   "arn:aws:s3:::",
                     { "Ref" : "ValidationBucket" },
                     ""
-                ]]},
-                { "Fn::Join" : [ "", [
-                  "arn:aws:s3:::",
-                    { "Ref" : "ValidationBucket" },
-                    "/*"
                 ]]}
               ]
             },
             {
               "Effect": "Allow",
               "Action": [
-                "cloudformation:DescribeStackResource"
+                "s3:PutObject",
+                "s3:GetObject",
+                "s3:DeleteObject"
+              ],
+              "Resource": [
+                { "Fn::Join" : [ "", [
+                  "arn:aws:s3:::",
+                    { "Ref" : "ValidationBucket" },
+                    "/artifacts/validation"
+                ]]},
+                { "Fn::Join" : [ "", [
+                  "arn:aws:s3:::",
+                    { "Ref" : "ValidationBucket" },
+                    "/artifacts/validation/*"
+                ]]}
+              ]
+            },
+            {
+              "Effect": "Allow",
+              "Action": [
+                "cloudformation:DescribeStackResource",
+                "iam:PassRole"
               ],
               "Resource": [
                 "*"
@@ -77,6 +93,10 @@
     "InstanceRole": {
       "Value": { "Ref" : "InstanceRole" },
       "Description" : "Name of the instance role"
+    },
+    "InstanceRoleProfile" : {
+      "Value":  { "Ref" : "InstanceProfile" },
+      "Description" : "Profile of the instance role"
     },
     "InstanceRoleArn" : {
       "Value": { "Fn::GetAtt" : [ "InstanceRole", "Arn" ] },
