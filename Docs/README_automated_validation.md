@@ -1,12 +1,12 @@
 # Verification
 
-The validation of the generated AMIs can be automated via AWS's CloudFormation functionality. This project includes a [suitable template](ValidationLaunch_el7.tpl.json) to automate the validation procedures and to generate and post a validation-report to an S3-hosted folder.
+The validation of the generated AMIs can be automated via AWS's CloudFormation functionality. This project includes a [suitable template](Validation_child-EC2_el7.tmplt.json) to automate the validation procedures and to generate and post a validation-report to an S3-hosted folder.
 
 ## Procedure:
 
 ### CLI-based:
 
-1. (optional) Upload the [validation template](ValidationLaunch_el7.tpl.json) to an S3 bucket.
+1. (optional) Upload the [validation template](Validation_child-EC2_el7.tmplt.json) to an S3 bucket.
 1. Create parameters file. This file contains a list of key-value pairs that the CloudFormation CLI uses to fill in a template's input fields. The parameters file content looks like:
 
     ```json
@@ -61,7 +61,7 @@ If all goes well, the `aws cloudformtation` command will result in an output mes
 
 ### Web UI-based:
 
-1. (optional) Upload the [validation template](ValidationLaunch_el7.tpl.json) to an S3 bucket.
+1. (optional) Upload the [validation template](Validation_child-EC2_el7.tmplt.json) to an S3 bucket.
 1. Open the CloudFormation service-page:
 
     <img src="https://cloud.githubusercontent.com/assets/7087031/22160753/0d691844-df15-11e6-92be-37222f280101.png" alt="amivalidate-step1" width="75%" height="75%">
