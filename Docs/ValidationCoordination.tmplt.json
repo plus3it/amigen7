@@ -17,10 +17,16 @@
         "RedHat"
       ]
     },
+    "CfnEndpointUrl": {
+      "Description": "URL to the CloudFormation Endpoint. e.g. https://cloudformation.us-east-1.amazonaws.com",
+      "Type": "String",
+      "Default": "",
+      "AllowedPattern": "^$|^http://.*$|^https://.*$"
+    },
     "InstanceType": {
       "Description": "Amazon EC2 instance type",
       "Type": "String",
-      "Default": "t2.micro",
+      "Default": "m4.large",
       "AllowedValues": [
         "t2.micro",
         "t2.small",
@@ -47,7 +53,7 @@
     "RootVolumeSize": {
       "Description": "Size in GB of the EBS volume to create. Ignored if \"AppVolumeDevice\" is blank",
       "Type": "Number",
-      "Default": "10",
+      "Default": "25",
       "MinValue": "5",
       "MaxValue": "16384",
       "ConstraintDescription": "Must be between 5GB and 16384GB."
@@ -76,6 +82,29 @@
       "AllowedPattern": "^[a-zA-Z][a-zA-Z0-9-]*[a-zA-Z0-9]*$"
     }
   },
+  "Metadata": {
+    "AWS::CloudFormation::Interface": {
+      "ParameterGroups": [
+        {
+          "Label": {
+            "default": "EC2 Instance Configuration"
+          },
+          "Parameters": [
+            "AmiId",
+            "AmiDistro",
+            "CfnEndpointUrl",
+            "InstanceType",
+            "KeyPairName",
+            "PrivIpOnly",
+            "RootVolumeSize",
+            "SecurityGroups",
+            "SubnetId",
+            "TemplateUrlEc2"
+          ]
+        }
+      ]
+    }
+  },
   "Resources": {
     "ValidatorIAM": {
       "Type": "AWS::CloudFormation::Stack",
@@ -100,6 +129,7 @@
             ]
           },
           "BucketName": { "Ref": "ValidationBucket" },
+          "CfnEndpointUrl": { "Ref": "CfnEndpointUrl" },
           "KeyPairName": { "Ref": "KeyPairName" },
           "InstanceType": { "Ref": "InstanceType"},
           "NoPublicIp": { "Ref": "PrivIpOnly" },
