@@ -6,25 +6,20 @@ The validation of the generated AMIs can be automated via AWS's CloudFormation f
 
 ### CLI-based:
 
-1. (optional) Upload the [validation template](Validation_child-EC2_el7.tmplt.json) to an S3 bucket.
+1. Upload the validation templates to an S3 bucket:
+    - [Parent validation-template](ValidationCoordination.tmplt.json) optional
+    - [EC2 validation-template](Validation_child-EC2_el7.tmplt.json)
+    - [IAM validation-template](Validation_child-IAM.tmplt.json)
+
 1. Create parameters file. This file contains a list of key-value pairs that the CloudFormation CLI uses to fill in a template's input fields. The parameters file content looks like:
 
     ```json
-[
-  {
-    "ParameterKey": "KeyName1",
-    "ParameterValue": "KeyVal1"
-  },
+    [ { "ParameterKey": "KeyName1", "ParameterValue": "KeyVal1" },
     ```
-[...elided...]
+    [...elided...]
     ```json
-  {
-    "ParameterKey": "KeyNameN",
-    "ParameterValue": "KeyValN"
-  }
-]
+    { "ParameterKey": "KeyNameN", "ParameterValue": "KeyValN" } ]
     ```
-
     Look at the [example file](validation-generic.json) if the above is not clear.
 
 1. Update the parameters file contents with values appropriate to your testing-environment.
@@ -32,7 +27,6 @@ The validation of the generated AMIs can be automated via AWS's CloudFormation f
     - `AmiDistro`: This will be a value of either `CentOS` or `RedHat`.
     - `AmiId`: This will be the image-ID of the AMI you wish to validate.
     - `BucketName`: This is the name of the S3 bucket that audit-artifacts are uploaded. By default, the audit-reports will be written to the `s3://<BUKKITNAME>/artifacts/validation/` bucket-folder.
-    - `InstanceRole`: An instance-role to assign to the testing instance. Note that, in order to write the eport-file to S3, the instance-role will need to have [write permissions](README_validation-IAM_Rules.md) to `s3://<BUKKITNAME>/artifacts/validation/`.
     - `InstanceType`: The instance-type that the test-instance will be launched as. Recommend `m4.large` (other instance-types may be selected but may cause the 10Gbps-support test to report lack of 10Gbps support).
     - `KeyPairName`: This is the logical-name of the provisioning key. This key will allow the tester to SSH into the default-user's account. A valid keyname must be given, even if there's no intention to login to the test-instance.
     - `NoPublicIp`: Whether to assign a public IP to the instance. Set to "false" if intending to SSH into the host from a host outside of AWS.
@@ -46,9 +40,9 @@ The validation of the generated AMIs can be automated via AWS's CloudFormation f
 1. Create the test instance from the template and parameter file:
 
     ```bash
-aws --profile <PROFILE> cloudformation --region <REGION> \
-   --template-url <TEMPLATE_URL> \
-   --parameters "file://<PATH>/<to>/<PARAM>/File
+    aws --profile <PROFILE> cloudformation --region <REGION> \
+      --template-url <TEMPLATE_URL> \
+      --parameters "file://<PATH>/<to>/<PARAM>/File
     ```
 
 If all goes well, the `aws cloudformtation` command will result in an output message similar to:
@@ -61,7 +55,10 @@ If all goes well, the `aws cloudformtation` command will result in an output mes
 
 ### Web UI-based:
 
-1. (optional) Upload the [validation template](Validation_child-EC2_el7.tmplt.json) to an S3 bucket.
+1. Upload the validation templates to an S3 bucket:
+    - [Parent validation-template](ValidationCoordination.tmplt.json) optional
+    - [EC2 validation-template](Validation_child-EC2_el7.tmplt.json)
+    - [IAM validation-template](Validation_child-IAM.tmplt.json)
 1. Open the CloudFormation service-page:
 
     <img src="https://cloud.githubusercontent.com/assets/7087031/22160753/0d691844-df15-11e6-92be-37222f280101.png" alt="amivalidate-step1" width="75%" height="75%">
