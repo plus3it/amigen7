@@ -1,53 +1,55 @@
 #!/bin/bash
+# shellcheck disable=
 #
 # Do some file cleanup...
 #
 #########################
 CHROOT=${CHROOT:-/mnt/ec2-root}
-CONFROOT=`dirname $0`
 CLOUDCFG="$CHROOT/etc/cloud/cloud.cfg"
 JRNLCNF="$CHROOT/etc/systemd/journald.conf"
 MAINTUSR="maintuser"
 
 # Disable EPEL repos
-chroot ${CHROOT} yum-config-manager --disable "*epel*" > /dev/null
+chroot "${CHROOT}" yum-config-manager --disable "*epel*" > /dev/null
 
 # Get rid of stale RPM data
-chroot ${CHROOT} yum clean --enablerepo=* -y packages
-chroot ${CHROOT} rm -rf /var/cache/yum
-chroot ${CHROOT} rm -rf /var/lib/yum
+chroot "${CHROOT}" yum clean --enablerepo=* -y packages
+chroot "${CHROOT}" rm -rf /var/cache/yum
+chroot "${CHROOT}" rm -rf /var/lib/yum
 
 # Nuke any history data
-cat /dev/null > ${CHROOT}/root/.bash_history
+cat /dev/null > "${CHROOT}/root/.bash_history"
 
 # Clean up all the log files
-for FILE in $(find ${CHROOT}/var/log -type f)
+# shellcheck disable=SC2044
+for FILE in $(find "${CHROOT}/var/log" -type f)
 do
-   cat /dev/null > $FILE
+   cat /dev/null > "${FILE}"
 done
 
 # Enable persistent journal logging
-if [[ $(grep -q ^Storage ${JRNLCNF})$? -ne 0 ]]
+if [[ $(grep -q ^Storage "${JRNLCNF}")$? -ne 0 ]]
 then
-   echo 'Storage=persistent' >> ${JRNLCNF}
-   install -d -m 0755 $CHROOT/var/log/journal
-   chroot $CHROOT systemd-tmpfiles --create --prefix /var/log/journal
+   echo 'Storage=persistent' >> "${JRNLCNF}"
+   install -d -m 0755 "${CHROOT}/var/log/journal"
+   chroot "${CHROOT}" systemd-tmpfiles --create --prefix /var/log/journal
 fi
 
 # Set TZ to UTC
-rm ${CHROOT}/etc/localtime
-cp ${CHROOT}/usr/share/zoneinfo/UTC ${CHROOT}/etc/localtime
+rm "${CHROOT}/etc/localtime"
+cp "${CHROOT}/usr/share/zoneinfo/UTC" "${CHROOT}/etc/localtime"
 
 # Create maintuser
 CLINITUSR=$(grep -E "name: (maintuser|centos|ec2-user|cloud-user)" \
-            ${CLOUDCFG} | awk '{print $2}')
+            "${CLOUDCFG}" | awk '{print $2}')
 
 if [ "${CLINITUSR}" = "" ]
 then
    echo "Cannot reset value of cloud-init default-user" > /dev/stderr
 else
    echo "Setting default cloud-init user to ${MAINTUSR}"
-sed -i '/^system_info/,/^  ssh_svcname/d' ${CLOUDCFG}
+sed -i '/^system_info/,/^  ssh_svcname/d' "${CLOUDCFG}"
+# shellcheck disable=SC1004
 sed -i '/syntax=yaml/i\
 system_info:\
   default_user:\
@@ -62,6 +64,6 @@ system_info:\
     cloud_dir: /var/lib/cloud\
     templates_dir: /etc/cloud/templates\
   ssh_svcname: sshd\
-' ${CLOUDCFG}
+' "${CLOUDCFG}"
 fi
 

@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2015
 #
 # This script performs the steps necessary to allow an SELinux
 # autorelabel to run within the ${CHROOT} environment prior to
@@ -28,7 +29,7 @@ fi
 # Make sure the chroot-env knows SEL is ready
 if [[ ! -d ${CHROOT}${SELDIR} ]]
 then
-   mount -o bind ${SELDIR} $CHROOT${SELDIR} && \
+   mount -o bind "${SELDIR}" "${CHROOT}${SELDIR}" && \
       echo "Mounted '${SELDIR}' to chroot env." || \
       fatal "${SELDIR} filesystem failed to mount"
 fi
@@ -36,11 +37,11 @@ fi
 # Nuke the re-lable file
 if [[ -f ${CHROOT}/.autorelabel ]]
 then
-   rm ${CHROOT}/.autorelabel && echo "Nuked ${CHROOT}/.autorelabel" || \
+   rm "${CHROOT}/.autorelabel" && echo "Nuked ${CHROOT}/.autorelabel" || \
       fatal "Failed to nuke ${CHROOT}/.autorelabel. AMI will relabel on first-boot"
 fi
 
 # Relabel the chroot-env
 printf "Relabeling the chroot env... "
-chroot $CHROOT /sbin/fixfiles -f relabel && echo "Success!" || \
+chroot "${CHROOT}" /sbin/fixfiles -f relabel && echo "Success!" || \
    fatal "Operation may have failed."

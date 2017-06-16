@@ -4,7 +4,7 @@
 #
 #################################################################
 
-for BLK in $(mount | grep ${CHROOT} | awk '{ print $3 }' | sort -r)
+for BLK in $(mount | grep "${CHROOT}" | awk '{ print $3 }' | sort -r)
 do
-   umount $BLK
+   umount "${BLK}"
 done

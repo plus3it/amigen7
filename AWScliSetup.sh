@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2086
 #
 # Script to automate and standardize installation of AWScli tools
 #
@@ -33,27 +34,27 @@ fi
 
 # Enable the RHEL "optional" repo where appropriate
 OPTIONREPO=$(yum repolist all | grep rhel-server-optional | sed 's/\/.*$//')
-if [[ "${OPTIONREPO}" != "" ]]
+if [[ ${OPTIONREPO} != "" ]]
 then
-   chroot "$CHROOT" yum-config-manager --enable ${OPTIONREPO}
+   chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO}"
 fi
 
 # Enabled requested repos in chroot() environment
 if [[ ! -z ${PRIVREPOS+xxx} ]]
 then
-    chroot "$CHROOT" yum-config-manager --enable "${PRIVREPOS}"
+    chroot "${CHROOT}" yum-config-manager --enable "${PRIVREPOS}"
 fi
 
 # Bail if bogus location for ZIP
-printf "Fetching ${BUNDLE} from ${ZIPSRC}..."
-(cd /tmp ; curl -sL "${ZIPSRC}/${BUNDLE}" -o ${BUNDLE})
+printf "Fetching %s from ${ZIPSRC}..." "${BUNDLE}"
+(cd /tmp && curl -sL "${ZIPSRC}/${BUNDLE}" -o "${BUNDLE}")
 echo
 
-if [[ ! -f "${AWSZIP}" ]]
+if [[ ! -f ${AWSZIP} ]]
 then
    echo "Did not find software at ${AWSZIP}. Aborting..." > /dev/stderr
    exit 1
-elif [[ $(file -b "${AWSZIP}" | cut -d " " -f 1) != "Zip" ]]
+elif [[ $(file -b "${AWSZIP}" | cut -d " " -f 1) != Zip ]]
 then
    echo "${AWSZIP} is not a ZIP-archive. Aborting..." > /dev/stderr
    exit 1
@@ -62,24 +63,24 @@ else
 fi
 
 # Unzip the AWScli bundle into /tmp
-(cd /tmp ; unzip -o ${AWSZIP})
+(cd /tmp && unzip -o ${AWSZIP})
 
 # Copy the de-archived zip to ${CHROOT}
-cp -r /tmp/awscli-bundle ${CHROOT}/root
+cp -r /tmp/awscli-bundle "${CHROOT}/root"
 
 # Install AWScli bundle into ${CHROOT}
-chroot ${CHROOT} /root/awscli-bundle/install -i /opt/aws/cli -b /usr/bin/aws
+chroot "${CHROOT}" /root/awscli-bundle/install -i /opt/aws/cli -b /usr/bin/aws
 
 # Verify AWScli functionality within ${CHROOT}
-chroot ${CHROOT} /usr/bin/aws --version
+chroot "${CHROOT}" /usr/bin/aws --version
 
 # Cleanup
-rm -rf ${CHROOT}/root/awscli-bundle
+rm -rf "${CHROOT}/root/awscli-bundle"
 
 # Depending on RPMs dependencies, this may fail if a repo is
 # missing (e.g. EPEL). Will also fail if no RPMs are present
 # in the search directory.
-yum install -y ${EPELRELEASE}
-yum --installroot=${CHROOT} install -y ${EPELRELEASE}
-yum --installroot=${CHROOT} install -y ${SCRIPTROOT}/AWSpkgs/*.noarch.rpm || \
-    exit $?
+yum install -y "${EPELRELEASE}"
+yum --installroot="${CHROOT}" install -y "${EPELRELEASE}"
+yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}/AWSpkgs/*.noarch.rpm" \
+   || exit $?

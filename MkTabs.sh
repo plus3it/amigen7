@@ -4,7 +4,6 @@
 #
 #################################################################
 CHROOT="${CHROOT:-/mnt/ec2-root}"
-CHROOTDEV=${1:-UNDEF}
 TARGSWAP=${2:-/dev/VolGroup00/swapVol}
 FSTAB="${CHROOT}/etc/fstab"
 
@@ -18,7 +17,7 @@ fi
 # Make sure that chroot'ed /etc/directory exists
 if [[ ! -d ${CHROOT}/etc ]]
 then
-   mkdir -p ${CHROOT}/etc
+   mkdir -p "${CHROOT}/etc"
    if [[ $? -ne 0 ]]
    then
       echo "Failed to create /etc" > /dev/stderr && exit 1
@@ -28,7 +27,7 @@ then
 fi
 
 # Create file-header
-cat << EOF > ${FSTAB}
+cat << EOF > "${FSTAB}"
 #
 # /etc/fstab
 #
@@ -37,47 +36,48 @@ cat << EOF > ${FSTAB}
 #
 EOF
 
-_CHROOT=$(echo ${CHROOT} | sed 's#^/##')
+# shellcheck disable=SC2001
+_CHROOT=$(echo "${CHROOT}" | sed 's#^/##')
 
 # Read mtab matches into an array
-IFS=$'\n'; MTABLNS=( $(grep ${CHROOT} /etc/mtab | grep ^/dev | \
-                   sed 's#'${_CHROOT}'##') )
+IFS=$'\n'; MTABLNS=( $(grep "${CHROOT}" /etc/mtab | grep ^/dev | \
+                   sed 's#'"${_CHROOT}"'##') )
 
 
-for FSLINE in ${MTABLNS[@]}
+for FSLINE in "${MTABLNS[@]}"
 do
-   BLKDEV=$(echo $FSLINE | awk '{print $1}')
-   MNTPNT=$(echo $FSLINE | awk '{print $2}' | sed 's#//#/#')
-   FSTYPE=$(echo $FSLINE | awk '{print $3}')
+   BLKDEV=$(echo "${FSLINE}" | awk '{print $1}')
+   MNTPNT=$(echo "${FSLINE}" | awk '{print $2}' | sed 's#//#/#')
+   FSTYPE=$(echo "${FSLINE}" | awk '{print $3}')
 
    case ${FSTYPE} in
       ext[234])
-         if [[ ! $(e2label ${BLKDEV}) = "" ]]
+         if [[ ! $(e2label "${BLKDEV}") = "" ]]
          then
-            BLKDEV="LABEL=$(e2label ${BLKDEV})"
+            BLKDEV="LABEL=$(e2label "${BLKDEV}")"
          fi
          ;;
       xfs)
          echo POINK
          ;;
    esac
-   printf "%s\t%s\t%s\tdefaults\t0 0\n" ${BLKDEV} ${MNTPNT} ${FSTYPE}
-done >> ${FSTAB}
-printf "%s\t%s\t%s\t%s\t0 0\n" ${TARGSWAP} swap swap '-' >> ${FSTAB}
+   printf "%s\t%s\t%s\tdefaults\t0 0\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}"
+done >> "${FSTAB}"
+printf "%s\t%s\t%s\t%s\t0 0\n" "${TARGSWAP}" swap swap '-' >> "${FSTAB}"
 
 
 # Read mtab matches into an array
-IFS=$'\n'; MTABLNS=( $(grep ${CHROOT} /etc/mtab | sed 's#'${_CHROOT}'##') )
+IFS=$'\n'; MTABLNS=( $(grep "${CHROOT}" /etc/mtab | sed 's#'"${_CHROOT}"'##') )
 
-for FSLINE in ${MTABLNS[@]}
+for FSLINE in "${MTABLNS[@]}"
 do
-   BLKDEV=$(echo $FSLINE | awk '{print $1}')
-   MNTPNT=$(echo $FSLINE | awk '{print $2}' | sed 's#//#/#')
-   FSTYPE=$(echo $FSLINE | awk '{print $3}')
-   MNTOPT=$(echo $FSLINE | awk '{print $4}')
-   FSFREQ=$(echo $FSLINE | awk '{print $5}')
-   FSPASS=$(echo $FSLINE | awk '{print $6}')
+   BLKDEV=$(echo "${FSLINE}" | awk '{print $1}')
+   MNTPNT=$(echo "${FSLINE}" | awk '{print $2}' | sed 's#//#/#')
+   FSTYPE=$(echo "${FSLINE}" | awk '{print $3}')
+   MNTOPT=$(echo "${FSLINE}" | awk '{print $4}')
+   FSFREQ=$(echo "${FSLINE}" | awk '{print $5}')
+   FSPASS=$(echo "${FSLINE}" | awk '{print $6}')
 
-   printf "%s %s %s %s %s %s\n" ${BLKDEV} ${MNTPNT} ${FSTYPE} ${MNTOPT} ${FSFREQ} ${FSPASS}
-done > ${CHROOT}/etc/mtab
+   printf "%s %s %s %s %s %s\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}" "${MNTOPT}" "${FSFREQ}" "${FSPASS}"
+done > "${CHROOT}/etc/mtab"
 

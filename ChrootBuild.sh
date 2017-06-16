@@ -1,11 +1,11 @@
 #!/bin/bash
+# shellcheck disable=SC2005,SC2001
 #
 # Install minimal RPM-set into chroot
 #
 #####################################
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
-CONFROOT=$(dirname $0)
 if [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
 then
    OSREPOS=(
@@ -24,32 +24,32 @@ then
       extras
    )
 fi
-DEFAULTREPOS=$(printf ",%s" ${OSREPOS[@]} | sed 's/^,//')
+DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 YCM="/bin/yum-config-manager"
 
 function PrepChroot() {
    local REPOPKGS=($(echo \
-                     $(rpm --qf '%{name}\n' -qf /etc/redhat-release) ; \
-                     echo $(rpm --qf '%{name}\n' -qf \
+                     "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
+                     echo "$(rpm --qf '%{name}\n' -qf \
                             /etc/yum.repos.d/* 2>&1 | \
-                            grep -v "not owned" | sort -u) ; \
+                            grep -v "not owned" | sort -u)" ; \
                      echo yum-utils
                    ))
 
    # Do this so that install of chkconfig RPM succeeds
    if [[ ! -e ${CHROOT}/etc/init.d ]]
    then
-      ln -t ${CHROOT}/etc -s ./rc.d/init.d
+      ln -t "${CHROOT}/etc" -s ./rc.d/init.d
    fi
    if [[ ! -e ${CHROOT}/etc/rc.d/init.d ]]
    then
-      install -d -m 0755 ${CHROOT}/etc/rc.d/init.d 
+      install -d -m 0755 "${CHROOT}/etc/rc.d/init.d"
    fi
 
-   yumdownloader --destdir=/tmp ${REPOPKGS[@]}
-   rpm --root ${CHROOT} --initdb
-   rpm --root ${CHROOT} -ivh --nodeps /tmp/*.rpm
+   yumdownloader --destdir=/tmp "${REPOPKGS[@]}"
+   rpm --root "${CHROOT}" --initdb
+   rpm --root "${CHROOT}" -ivh --nodeps /tmp/*.rpm
 
    # When we don't specify repos, default to a sensible value-list
    if [[ -z ${BONUSREPO+xxx} ]]
@@ -57,15 +57,15 @@ function PrepChroot() {
       BONUSREPO=${DEFAULTREPOS}
    fi
 
-   yum --disablerepo="*" --enablerepo=${BONUSREPO} \
-      --installroot=${CHROOT} -y reinstall ${REPOPKGS[@]}
-   yum --disablerepo="*" --enablerepo=${BONUSREPO} \
-      --installroot=${CHROOT} -y install yum-utils
+   yum --disablerepo="*" --enablerepo="${BONUSREPO}" \
+      --installroot="${CHROOT}" -y reinstall "${REPOPKGS[@]}"
+   yum --disablerepo="*" --enablerepo="${BONUSREPO}" \
+      --installroot="${CHROOT}" -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repo
    if [[ ! -z ${REPORPM+xxx} ]]
    then
-      rpm --root ${CHROOT} -ivh --nodeps "${REPORPM}"
+      rpm --root "${CHROOT}" -ivh --nodeps "${REPORPM}"
    fi
 }
 
@@ -75,10 +75,10 @@ function PrepChroot() {
 ######################
 
 # See if we'e passed any valid flags
-OPTIONBUFR=$(getopt -o r:b:e: --long repouri:bonusrepos:extras: -n ${PROGNAME} -- "$@")
+OPTIONBUFR=$(getopt -o r:b:e: --long repouri:bonusrepos:extras: -n "${PROGNAME}" -- "$@")
 eval set -- "${OPTIONBUFR}"
 
-while [[ true ]]
+while true
 do
    case "$1" in
       -r|--repouri)
@@ -115,7 +115,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       EXTRARPMS=($(echo ${2} | sed 's/,/ /g'))
+	       EXTRARPMS=($(echo "${2}" | sed 's/,/ /g'))
 	       shift 2;
 	       ;;
 	 esac
@@ -136,15 +136,16 @@ PrepChroot
 
 if [[ ! -z ${BONUSREPO+xxx} ]]
 then
-   ENABREPO=--enablerepo="${BONUSREPO}"
+   ENABREPO=--enablerepo=${BONUSREPO}
+   # shellcheck disable=SC2125
    YUMDO="yum --nogpgcheck --installroot=${CHROOT} --disablerepo="*" ${ENABREPO} install -y"
 else
    YUMDO="yum --nogpgcheck --installroot=${CHROOT} install -y"
 fi
 
 # Activate repos in the chroot...
-chroot $CHROOT ${YCM} --disable "*"
-chroot $CHROOT ${YCM} --enable ${BONUSREPO}
+chroot "$CHROOT" "${YCM}" --disable "*"
+chroot "$CHROOT" "${YCM}" --enable "${BONUSREPO}"
 
 # Whether to include FIPS kernel modules...
 case "${FIPSDISABLE}" in
@@ -158,7 +159,7 @@ esac
 
 # Install main RPM-groups
 ${YUMDO} @core -- \
-$(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
+"$(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u)" \
     authconfig \
     chrony \
     cloud-init \
