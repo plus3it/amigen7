@@ -9,6 +9,7 @@ CHROOT="${CHROOT:-/mnt/ec2-root}"
 CHROOTDEV=${1:-UNDEF}
 FSTAB="${CHROOT}/etc/fstab"
 CHGRUBDEF="${CHROOT}/etc/default/grub"
+FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 ROOTLN=""
 
 # Check for arguments
@@ -46,7 +47,14 @@ then
     # Disable systemd's predictable network interface naming behavior
     printf "net.ifnames=0 "
     # Enable FIPS mode ...and make it accept the /boot partition
-    printf "fips=1 boot=LABEL=/boot\"\n"
+    case "${FIPSDISABLE}" in
+       true|TRUE|1|on)
+          printf "fips=0 boot=LABEL=/boot\"\n"
+          ;;
+       UNDEF|''|false|FALSE|0)
+          printf "fips=1 boot=LABEL=/boot\"\n"
+          ;;
+    esac
    ) > ${CHGRUBDEF}
 
    if [[ $? -ne 0 ]]
