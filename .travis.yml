@@ -1,0 +1,38 @@
+language: shell
+env:
+  global:
+    - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+    - SEGFAULT_SIGNALS=all
+
+addons:
+  apt:
+    sources:
+      - debian-sid    # Grab ShellCheck from the Debian repo
+    packages:
+      - shellcheck
+
+matrix:
+  include:
+    - env:
+        - TESTENV=shellcheck
+        - TESTCOMMAND="find $TRAVIS_BUILD_DIR -name '*.sh' -type f -print0 | xargs -0 -n1 -t shellcheck"
+        - SHELLCHECK_OPTS="-s bash"
+
+before_install:
+  - echo $TESTCOMMAND
+  - shellcheck --version
+
+install: true
+
+script:
+  - bash -c "$TESTCOMMAND"
+
+notifications:
+  email:
+    on_success: never
+    on_failure: always
+  slack:
+    rooms:
+      - secure: AYnO2M3Dp9DwSMmNXwBk8ESpMz6NdtsIjmmZ4hax9xt1M1/FbRll7U5glBFQ7aOVV6Il4QdlaARtkgEdfI9px3qehK5ZcuqE8PieBMDab3orVcHuoY866YZxvbPNMvTny5aRndxYpN2YbOpv8+3Lhat7+t2xlpwV7qIL7AT01Ix+Qd5Vy2YUgzEULwrNEOkzwIVfge7X84ar93nlDvQ4SX9WeL6695wETghKe4okEOyLHIqUSWnqM1pg4qJOXnSU9NkqZwZWqtnyjG2UQXN4TxenCsL7UDLIYx14cP1E6fvchK0jgq4y9v80heFq603s9R23a+gX6j8Wyj0jU6gThiNE2p9aqBrDv5cjijIN7Eo7cTPyy0wJmhIiHZmGpzHzx3ZNBmV+a/qIDRV7wzCC/JScO+na1FRrcQWsndmk6kPLLTXIIHbUAWgJF5eVWi9RXY39uN8LHPgCIFpTJtZIWl7RmR5m7ZDpq1OyiDsd4BFgXQ556Hk7t+DCQspz3uYRsWdzyRHArtOp+FF+4JAm3Mq2qDrj1UfdNGC3BJmUMgIuWuZyt5wYfJT+gWe0W9cwpJ6B7AG8l4P+Uk56UB5yO5jVd0EEcjpXkfSPpoF8Dpm02bJeppSFtpvYcO40NWPPizDdIdoF1oVYagTcqorFywZ2a2pGpocrCwJAkNj89xY="
+    on_success: never
+    on_failure: always
