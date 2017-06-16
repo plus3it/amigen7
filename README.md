@@ -13,3 +13,4 @@ The scripts in this project are designed to ease the creation of LVM-enabled Ent
 * Verify that the resultant AMI supports the expected features (see the [Instance Verification](Docs/README_InstanceVerification.md) README)
 * [Planned Enhancements](Docs/README_enhancements.md)
 
+![Travis Build Status](https://travis-ci.org/ferricoxide/AMIgen7.svg?branch=master)
