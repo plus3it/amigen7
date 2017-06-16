@@ -25,6 +25,7 @@ then
    )
 fi
 DEFAULTREPOS=$(printf ",%s" ${OSREPOS[@]} | sed 's/^,//')
+FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 YCM="/bin/yum-config-manager"
 
 function PrepChroot() {
@@ -145,6 +146,16 @@ fi
 chroot $CHROOT ${YCM} --disable "*"
 chroot $CHROOT ${YCM} --enable ${BONUSREPO}
 
+# Whether to include FIPS kernel modules...
+case "${FIPSDISABLE}" in
+   true|TRUE|1|on)
+      FIPSRPM=''
+      ;;
+   UNDEF|''|false|FALSE|0)
+      FIPSRPM='dracut-fips'
+      ;;
+esac
+
 # Install main RPM-groups
 ${YUMDO} @core -- \
 $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
@@ -153,7 +164,7 @@ $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort 
     cloud-init \
     cloud-utils-growpart \
     dracut-config-generic \
-    dracut-fips \
+    "${FIPSRPM}" \
     dracut-norescue \
     gdisk \
     grub2 \
