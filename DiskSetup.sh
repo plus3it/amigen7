@@ -49,10 +49,7 @@ function CarveLVM() {
       mkpart primary ext4 ${BOOTDEVSZ} 100% set 2 lvm
 
    # Stop/umount boot device, in case parted/udev/systemd managed to remount it
-   if [[ $(systemctl is-active boot.mount > /dev/null 2>&1)$? -eq 0 ]]
-   then
-      systemctl stop boot.mount
-   fi
+  systemctl stop boot.mount
 
    # Create LVM objects
    vgcreate -y "${VGNAME}" "${CHROOTDEV}2" || LogBrk 5 "VG creation failed. Aborting!"
@@ -68,6 +65,19 @@ function CarveLVM() {
       echo "Failed creating one or more volumes. Aborting"
       exit 1
    fi
+
+   # Gather info to diagnose seeming /boot race condition
+   grep "${BOOTLABEL}" /proc/mounts
+   # shellcheck disable=SC2181
+   if [[ $? -eq 0 ]]
+   then
+     tail -n 100 /var/log/messages
+     sleep 3
+   fi
+
+   # Stop/umount boot device, in case parted/udev/systemd managed to remount it
+   # again.
+  systemctl stop boot.mount
 
    # Create filesystems
    mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}1" || err_exit "Failure creating filesystem - /boot"
