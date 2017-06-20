@@ -82,5 +82,5 @@ rm -rf "${CHROOT}/root/awscli-bundle"
 # in the search directory.
 yum install -y "${EPELRELEASE}"
 yum --installroot="${CHROOT}" install -y "${EPELRELEASE}"
-yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}/AWSpkgs/*.noarch.rpm" \
+yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.noarch.rpm \
    || exit $?
