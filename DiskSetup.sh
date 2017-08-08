@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2181
 #
 # Script to automate basic setup of CHROOT device
 #

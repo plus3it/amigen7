@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2005,SC2001
+# shellcheck disable=SC2005,SC2001,SC2181
 #
 # Install minimal RPM-set into chroot
 #

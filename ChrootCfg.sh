@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=
+# shellcheck disable=SC2181
 #
 # Configure components within the chroot
 # * Set system-wide TZ to match TIMEZON value (UTC)
@@ -64,6 +64,22 @@ chroot "${CHROOT}" /bin/sh -c "(rpm -q --scripts selinux-policy-targeted | \
    sed -e '1,/^postinstall scriptlet/d' | \
    sed -e '1i #!/bin/sh') > /tmp/selinuxconfig.sh ; \
    sh /tmp/selinuxconfig.sh 1"
+
+# Ensure that firewalld will work in drop mode...
+printf "Adding firewalld rules... "
+chroot "${CHROOT}" /bin/sh -c "(
+      firewall-offline-cmd --direct --add-rule ipv4 filter INPUT_direct 10 -m state --state RELATED,ESTABLISHED -m comment --comment 'Allow related and established connections' -j ACCEPT
+      firewall-offline-cmd --direct --add-rule ipv4 filter INPUT_direct 20 -i lo -j ACCEPT
+      firewall-offline-cmd --direct --add-rule ipv4 filter INPUT_direct 30 -d 127.0.0.0/8 '!' -i lo -j DROP
+      firewall-offline-cmd --direct --add-rule ipv4 filter INPUT_direct 50 -p tcp -m tcp --dport 22 -j ACCEPT
+   )" && echo "Success!" || echo "Encountered errors."
+
+## Note: add `firewall-offline-cmd --set-default-zone=drop` to the above ##
+## to set the default AMI/instance posture to "drop". As written, the    ##
+## above only adds "safeties" to the AMI/instance in case someone        ##
+## changes the default-zone from "public" to "drop" (or other            ##
+## more-restrictive-than-public firewalld posture).                      ##
+###########################################################################
 
 # Execute any localizations if a valid script-location is
 # passed as a shell-env
