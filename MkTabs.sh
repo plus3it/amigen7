@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2181
 #
 # Script to set up the chroot'ed /etc/fstab
 #

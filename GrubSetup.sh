@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=
+# shellcheck disable=SC2181
 #
 # Script to set up the chroot'ed /etc/fstab
 # - Pass in the name of the EBS device the chroot was built on
