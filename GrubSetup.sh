@@ -34,7 +34,7 @@ then
    printf "was faulty. Manufacturing a %s.\n" "${CHGRUBDEF}"
 
    (
-    printf "GRUB_TIMEOUT=5\n"
+    printf "GRUB_TIMEOUT=1\n"
     # shellcheck disable=2059
     printf "GRUB_DISTRIBUTOR=\"$(sed 's, release .*$,,g' /etc/system-release)\"\n"
     printf "GRUB_DEFAULT=saved\n"
