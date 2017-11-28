@@ -42,7 +42,10 @@ then
     printf "GRUB_DISABLE_LINUX_UUID=true\n"
     printf "GRUB_DISABLE_RECOVERY=\"true\"\n"
     printf "GRUB_TERMINAL_OUTPUT=\"console\"\n"
-    printf "GRUB_CMDLINE_LINUX=\"console=tty0 crashkernel=auto console=ttyS0,115200n8 "
+    # Set GRUB2 vconsole output behavior
+    printf "GRUB_CMDLINE_LINUX=\"crashkernel=auto vconsole.keymap=us "
+    printf "vconsole.font=latarcyrheb-sun16 console=tty0 "
+    printf "console=ttyS0,115200n8 "
     # Disable systemd's predictable network interface naming behavior
     printf "net.ifnames=0 "
     # Enable FIPS mode ...and make it accept the /boot partition
