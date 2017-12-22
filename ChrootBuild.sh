@@ -62,10 +62,13 @@ function PrepChroot() {
    yum --disablerepo="*" --enablerepo="${BONUSREPO}" \
       --installroot="${CHROOT}" -y install yum-utils
 
-   # if alt-repo defined, disable everything, then install alt-repo
-   if [[ ! -z ${REPORPM+xxx} ]]
+   # if alt-repo defined, disable everything, then install alt-repos
+   if [[ ! -z ${REPORPMS+xxx} ]]
    then
-      rpm --root "${CHROOT}" -ivh --nodeps "${REPORPM}"
+      for RPM in ${REPORPMS}
+      do
+         rpm --root ${CHROOT} -ivh --nodeps "${RPM}"
+      done
    fi
 }
 
@@ -89,7 +92,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       REPORPM=${2}
+	       REPORPMS=($(echo "${2}" | sed 's/,/ /g'))
 	       shift 2;
 	       ;;
 	 esac
