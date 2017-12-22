@@ -67,7 +67,7 @@ function PrepChroot() {
    then
       for RPM in ${REPORPMS}
       do
-         rpm --root ${CHROOT} -ivh --nodeps "${RPM}"
+         rpm --root "${CHROOT}" -ivh --nodeps "${RPM}"
       done
    fi
 }
