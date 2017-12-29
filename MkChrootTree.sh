@@ -60,7 +60,7 @@ then
    mount "/dev/${VGNAME}/varVol" "${ALTROOT}/var/" || err_out 2 "Mount Failed"
 
    # Prep next-level mountpoints
-   mkdir -p "${ALTROOT}"/var/{cache,log,lock,lib/{,rpm},tmp}
+   mkdir -p "${ALTROOT}"/var/{cache,log,lib/{,rpm},tmp}
 
    # Mount log volume
    echo "Mounting /dev/${VGNAME}/logVol to ${ALTROOT}/var/log"
