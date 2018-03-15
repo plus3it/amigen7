@@ -65,7 +65,7 @@ function PrepChroot() {
    # if alt-repo defined, disable everything, then install alt-repos
    if [[ ! -z ${REPORPMS+xxx} ]]
    then
-      for RPM in ${REPORPMS}
+      for RPM in "${REPORPMS[@]}"
       do
          rpm --root "${CHROOT}" -ivh --nodeps "${RPM}"
       done
