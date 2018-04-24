@@ -37,6 +37,12 @@ function PrepChroot() {
                      echo yum-utils
                    ))
 
+   # Enable DNS resolution in the chroot
+   if [[ ! -e ${CHROOT}/etc/resolv.conf ]]
+   then
+      install -m 0644 /etc/resolv.conf "${CHROOT}/etc"
+   fi
+
    # Do this so that install of chkconfig RPM succeeds
    if [[ ! -e ${CHROOT}/etc/init.d ]]
    then
