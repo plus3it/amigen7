@@ -40,6 +40,7 @@ function CarveLVM() {
    local HOMEVOL=(homeVol 1g)
    local VARVOL=(varVol 2g)
    local LOGVOL=(logVol 2g)
+   local TMPVOL=(tmpVol 2g)
    local AUDVOL=(auditVol 100%FREE)
 
    # Clear the MBR and partition table
@@ -59,6 +60,7 @@ function CarveLVM() {
    lvcreate --yes -W y -L "${HOMEVOL[1]}" -n "${HOMEVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${VARVOL[1]}" -n "${VARVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${LOGVOL[1]}" -n "${LOGVOL[0]}" "${VGNAME}" || LVCSTAT=1
+   lvcreate --yes -W y -L "${TMPVOL[1]}" -n "${TMPVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -l "${AUDVOL[1]}" -n "${AUDVOL[0]}" "${VGNAME}" || LVCSTAT=1
 
    if [[ ${LVCSTAT} = 1 ]]
@@ -86,6 +88,7 @@ function CarveLVM() {
    mkfs -t ext4 "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
    mkfs -t ext4 "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
    mkfs -t ext4 "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
+   mkfs -t ext4 "/dev/${VGNAME}/${TMPVOL[0]}" || err_exit "Failure creating filesystem - /tmp"
    mkfs -t ext4 "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
    mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
 
