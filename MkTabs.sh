@@ -81,4 +81,3 @@ do
 
    printf "%s %s %s %s %s %s\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}" "${MNTOPT}" "${FSFREQ}" "${FSPASS}"
 done > "${CHROOT}/etc/mtab"
-
