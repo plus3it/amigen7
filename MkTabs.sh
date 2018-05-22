@@ -62,7 +62,11 @@ do
          echo POINK
          ;;
    esac
-   printf "%s\t%s\t%s\tdefaults\t0 0\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}"
+   if [ "$MNTPNT" = "/tmp" ]; then
+      printf "%s\t%s\t%s\tdefaults,nodev,nosuid,noexec\t0 0\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}"
+   else
+      printf "%s\t%s\t%s\tdefaults\t0 0\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}"
+   fi
 done >> "${FSTAB}"
 printf "%s\t%s\t%s\t%s\t0 0\n" "${TARGSWAP}" swap swap '-' >> "${FSTAB}"
 
@@ -81,4 +85,3 @@ do
 
    printf "%s %s %s %s %s %s\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}" "${MNTOPT}" "${FSFREQ}" "${FSPASS}"
 done > "${CHROOT}/etc/mtab"
-

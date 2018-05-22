@@ -49,7 +49,7 @@ then
    mount "/dev/${VGNAME}/rootVol" "${ALTROOT}/" || err_out 2 "Mount Failed"
 
    # Prep for next-level mounts
-   mkdir -p "${ALTROOT}"/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
+   mkdir -p "${ALTROOT}"/{var,opt,home,boot,etc,tmp} || err_out 3 "Mountpoint Create Failed"
 
    # Mount the boot-root
    echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
@@ -65,6 +65,10 @@ then
    # Mount log volume
    echo "Mounting /dev/${VGNAME}/logVol to ${ALTROOT}/var/log"
    mount "/dev/${VGNAME}/logVol" "${ALTROOT}/var/log" 
+   
+   # Mount tmp volume
+   echo "Mounting /dev/${VGNAME}/tmpVol to ${ALTROOT}/tmp"
+   mount "/dev/${VGNAME}/tmpVol" "${ALTROOT}/tmp" 
 
    # Mount audit volume
    mkdir "${ALTROOT}/var/log/audit"
@@ -122,7 +126,6 @@ chown root:tty "${ALTROOT}"/dev/ptmx
 # Bind-mount everything else
 BINDSOURCES=( $(grep -v "${ALTROOT}" /proc/mounts | sed '{
                  /^none/d
-                 /\/tmp/d
                  /rootfs/d
                  /dev\/xvd/d
                  /\/user\//d
