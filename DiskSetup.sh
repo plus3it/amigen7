@@ -8,13 +8,6 @@ PROGNAME=$(basename "$0")
 BOOTDEVSZ="500m"
 HOSTBOOTDEV="$( df -P / | awk 'END{print $1}' )"
 
-if [[ ${HOSTBOOTDEV} =~ /dev/nvme ]]
-then
-   PARTPRE="p"
-else
-   PARTPRE=""
-fi
-
 # Error-logging
 function err_exit {
    echo "${1}" > /dev/stderr
@@ -197,7 +190,15 @@ do
    esac
 done
 
+# See if our carve-target is an NVMe
+if [[ ${CHROOTDEV} =~ /dev/nvme ]]
+then
+   PARTPRE="p"
+else
+   PARTPRE=""
+fi
 if [[ -z ${BOOTLABEL+xxx} ]]
+
 then
    LogBrk 1 "Cannot continue without 'bootlabel' being specified. Aborting..."
 elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
