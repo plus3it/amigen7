@@ -134,6 +134,7 @@ BINDSOURCES=( $(grep -v "${ALTROOT}" /proc/mounts | sed '{
                  /\/tmp/d
                  /rootfs/d
                  /dev\/xvd/d
+                 /dev\/nvme/d
                  /\/user\//d
                  /\/mapper\//d
                  /^cgroup/d
