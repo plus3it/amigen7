@@ -6,7 +6,6 @@
 #################################################################
 PROGNAME=$(basename "$0")
 BOOTDEVSZ="500m"
-HOSTBOOTDEV="$( df -P / | awk 'END{print $1}' )"
 
 # Error-logging
 function err_exit {
