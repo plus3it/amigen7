@@ -6,9 +6,19 @@
 #
 #######################################################################
 CHROOTDEV=${1:-UNDEF}
-BOOTDEV=${CHROOTDEV}1
-LVMDEV=${CHROOTDEV}2
 ALTROOT="${CHROOT:-/mnt/ec2-root}"
+HOSTBOOTDEV="$( df -P / | awk 'END{print $1}' )"
+
+if [[ ${HOSTBOOTDEV} =~ /dev/nvme ]]
+then
+   PARTPRE="p"
+else
+   PARTPRE=""
+fi
+
+BOOTDEV=${CHROOTDEV}${PARTPRE}1
+LVMDEV=${CHROOTDEV}${PARTPRE}2
+
 
 # Generic logging outputter - extend to increase output destinations
 function err_out() {
