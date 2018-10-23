@@ -1,6 +1,6 @@
 # Register Image
 
-In order to register an AMI that has been stripped of any `billibProduct` metadata, it will be necessary to register the image from an EBS snapshot. Registering from snapshot can be done either from the EC2 Web Console or the AWS CLI. However, in order to ensure that support for ENA and SRIOV is enabled within the registered image, the AWS CLI must be used.
+In order to register an AMI that has been stripped of any `billingProduct` metadata, it will be necessary to register the image from an EBS snapshot. Registering from snapshot can be done either from the EC2 Web Console or the AWS CLI. However, in order to ensure that support for ENA and SRIOV is enabled within the registered image, the AWS CLI must be used.
 
 ## Notes
 
