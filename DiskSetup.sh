@@ -53,7 +53,7 @@ function CarveLVM() {
   systemctl stop boot.mount
 
    # Create LVM objects
-   vgcreate -y "${VGNAME}" "${CHROOTDEV}2" || LogBrk 5 "VG creation failed. Aborting!"
+   vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
    lvcreate --yes -W y -L "${ROOTVOL[1]}" -n "${ROOTVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${SWAPVOL[1]}" -n "${SWAPVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${HOMEVOL[1]}" -n "${HOMEVOL[0]}" "${VGNAME}" || LVCSTAT=1
@@ -81,7 +81,7 @@ function CarveLVM() {
   systemctl stop boot.mount
 
    # Create filesystems
-   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}1" || err_exit "Failure creating filesystem - /boot"
+   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
    mkfs -t ext4 "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
    mkfs -t ext4 "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
    mkfs -t ext4 "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
@@ -90,10 +90,10 @@ function CarveLVM() {
    mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
 
    # shellcheck disable=SC2053
-   if [[ $(e2label "${CHROOTDEV}1") != ${BOOTLABEL} ]]
+   if [[ $(e2label "${CHROOTDEV}${PARTPRE}1") != ${BOOTLABEL} ]]
    then
-      e2label "${CHROOTDEV}1" "${BOOTLABEL}" || \
-         err_exit "Failed to apply desired label to ${CHROOTDEV}1"
+      e2label "${CHROOTDEV}${PARTPRE}1" "${BOOTLABEL}" || \
+         err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
    fi
 }
 
@@ -107,8 +107,8 @@ function CarveBare() {
       mkpart primary ext4 ${BOOTDEVSZ} 100%
 
    # Create FS on partitions
-   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}1"
-   mkfs -t ext4 -L "${ROOTLABEL}" "${CHROOTDEV}2"
+   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
+   mkfs -t ext4 -L "${ROOTLABEL}" "${CHROOTDEV}${PARTPRE}2"
 }
 
 
@@ -189,7 +189,15 @@ do
    esac
 done
 
+# See if our carve-target is an NVMe
+if [[ ${CHROOTDEV} =~ /dev/nvme ]]
+then
+   PARTPRE="p"
+else
+   PARTPRE=""
+fi
 if [[ -z ${BOOTLABEL+xxx} ]]
+
 then
    LogBrk 1 "Cannot continue without 'bootlabel' being specified. Aborting..."
 elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
