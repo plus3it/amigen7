@@ -68,9 +68,7 @@ function CarveLVM() {
    fi
 
    # Gather info to diagnose seeming /boot race condition
-   grep "${BOOTLABEL}" /proc/mounts
-   # shellcheck disable=SC2181
-   if [[ $? -eq 0 ]]
+   if [[ $(grep -q "${BOOTLABEL}" /proc/mounts)$? -eq 0 ]]
    then
      tail -n 100 /var/log/messages
      sleep 3
