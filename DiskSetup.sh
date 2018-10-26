@@ -53,6 +53,7 @@ function CarveLVM() {
   systemctl stop boot.mount
 
    # Create LVM objects
+   LVCSTAT=0
    vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
    lvcreate --yes -W y -L "${ROOTVOL[1]}" -n "${ROOTVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${SWAPVOL[1]}" -n "${SWAPVOL[0]}" "${VGNAME}" || LVCSTAT=1
