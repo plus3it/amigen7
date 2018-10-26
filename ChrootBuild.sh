@@ -167,8 +167,9 @@ case "${FIPSDISABLE}" in
 esac
 
 # Install main RPM-groups
+# shellcheck disable=SC2046
 ${YUMDO} @core -- \
-"$(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u)" \
+    $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
     authconfig \
     chrony \
     cloud-init \
