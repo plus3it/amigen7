@@ -73,8 +73,7 @@ function PrepChroot() {
    then
       for RPM in "${REPORPMS[@]}"
       do
-         rpm --root "${CHROOT}" -ivh --nodeps "${RPM}" || \
-            rpm --root "${CHROOT}" -ivh --nodeps "${RPM}" 2>&1 | grep "is already installed"
+         { STDERR=$(rpm --root "${CHROOT}" -ivh --nodeps "${RPM}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "is already installed"
       done
    fi
 }
