@@ -33,10 +33,10 @@ then
 fi
 
 # Enable the RHEL "optional" repo where appropriate
-OPTIONREPO=$(yum repolist all | grep rhel-server-optional | sed 's/\/.*$//')
+OPTIONREPO=$(yum repolist all | grep rhel-server-optional || true)
 if [[ ${OPTIONREPO} != "" ]]
 then
-   chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO}"
+   chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO/\/*/}"
 fi
 
 # Enabled requested repos in chroot() environment
