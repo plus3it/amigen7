@@ -33,10 +33,10 @@ then
 fi
 
 # Enable the RHEL "optional" repo where appropriate
-OPTIONREPO=$(yum repolist all | grep rhel-server-optional | sed 's/\/.*$//')
+OPTIONREPO=$(yum repolist all | grep rhel-server-optional || true)
 if [[ ${OPTIONREPO} != "" ]]
 then
-   chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO}"
+   chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO/\/*/}"
 fi
 
 # Enabled requested repos in chroot() environment
@@ -80,7 +80,7 @@ rm -rf "${CHROOT}/root/awscli-bundle"
 # Depending on RPMs dependencies, this may fail if a repo is
 # missing (e.g. EPEL). Will also fail if no RPMs are present
 # in the search directory.
-yum install -y "${EPELRELEASE}"
-yum --installroot="${CHROOT}" install -y "${EPELRELEASE}"
+{ STDERR=$(yum install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
+{ STDERR=$(yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
 yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.noarch.rpm \
    || exit $?
