@@ -166,84 +166,102 @@ case "${FIPSDISABLE}" in
       ;;
 esac
 
-# Install main RPM-groups
-# shellcheck disable=SC2046
-${YUMDO} @core -- \
-    $(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u) \
-    authconfig \
-    chrony \
-    cloud-init \
-    cloud-utils-growpart \
-    dracut-config-generic \
-    "${FIPSRPM}" \
-    dracut-norescue \
-    gdisk \
-    grub2 \
-    grub2-tools \
-    iptables-services \
-    iptables-utils \
-    kernel \
-    kexec-tools \
-    lvm2 \
-    ntp \
-    ntpdate \
-    openssh-clients \
-    openssh-server \
-    rootfiles \
-    rsync \
-    selinux-policy-targeted \
-    sudo \
-    tar \
-    vim-common \
-    wget \
-    yum-utils \
-    -abrt \
-    -abrt-addon-ccpp \
-    -abrt-addon-kerneloops \
-    -abrt-addon-python \
-    -abrt-cli \
-    -abrt-libs \
-    -aic94xx-firmware \
-    -alsa-firmware \
-    -alsa-lib \
-    -alsa-tools-firmware \
-    -biosdevname \
-    -gcc-gfortran \
-    -iprutils \
-    -ivtv-firmware \
-    -iwl1000-firmware \
-    -iwl100-firmware \
-    -iwl105-firmware \
-    -iwl135-firmware \
-    -iwl2000-firmware \
-    -iwl2030-firmware \
-    -iwl3160-firmware \
-    -iwl3945-firmware \
-    -iwl4965-firmware \
-    -iwl5000-firmware \
-    -iwl5150-firmware \
-    -iwl6000-firmware \
-    -iwl6000g2a-firmware \
-    -iwl6000g2b-firmware \
-    -iwl6050-firmware \
-    -iwl7260-firmware \
-    -libertas-sd8686-firmware \
-    -libertas-sd8787-firmware \
-    -libertas-usb8388-firmware \
-    -libvirt-client \
-    -libvirt-devel \
-    -libvirt-java \
-    -libvirt-java-devel \
-    -nc \
-    -NetworkManager \
-    -plymouth \
+# Setup the "include" package list
+INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+INCLUDE_PKGS+=($(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u))
+INCLUDE_PKGS+=(
+    authconfig
+    chrony
+    cloud-init
+    cloud-utils-growpart
+    dracut-config-generic
+    dracut-norescue
+    gdisk
+    grub2
+    grub2-tools
+    iptables-services
+    iptables-utils
+    kernel
+    kexec-tools
+    lvm2
+    ntp
+    ntpdate
+    openssh-clients
+    openssh-server
+    rootfiles
+    rsync
+    selinux-policy-targeted
+    sudo
+    tar
+    vim-common
+    wget
+    yum-utils
+)
+if [[ -n "$FIPSRPM" ]];
+then
+    INCLUDE_PKGS+=("$FIPSRPM")
+fi
+
+# Setup the "exclude" package list
+EXCLUDE_PKGS=(
+    -abrt
+    -abrt-addon-ccpp
+    -abrt-addon-kerneloops
+    -abrt-addon-python
+    -abrt-cli
+    -abrt-libs
+    -aic94xx-firmware
+    -alsa-firmware
+    -alsa-lib
+    -alsa-tools-firmware
+    -biosdevname
+    -gcc-gfortran
+    -iprutils
+    -ivtv-firmware
+    -iwl1000-firmware
+    -iwl100-firmware
+    -iwl105-firmware
+    -iwl135-firmware
+    -iwl2000-firmware
+    -iwl2030-firmware
+    -iwl3160-firmware
+    -iwl3945-firmware
+    -iwl4965-firmware
+    -iwl5000-firmware
+    -iwl5150-firmware
+    -iwl6000-firmware
+    -iwl6000g2a-firmware
+    -iwl6000g2b-firmware
+    -iwl6050-firmware
+    -iwl7260-firmware
+    -libertas-sd8686-firmware
+    -libertas-sd8787-firmware
+    -libertas-usb8388-firmware
+    -libvirt-client
+    -libvirt-devel
+    -libvirt-java
+    -libvirt-java-devel
+    -nc
+    -NetworkManager
+    -plymouth
     -sendmail
+)
+
+# Install main RPM-groups
+$YUMDO -- "${INCLUDE_PKGS[@]}" "${EXCLUDE_PKGS[@]}"
+
+# Validate all included packages were installed
+rpm -q "${INCLUDE_PKGS[@]}"
 
 # Install additionally-requested RPMs
 if [[ ! -z ${EXTRARPMS+xxx} ]]
 then
    printf "##########\n## Installing requested RPMs/groups\n##########\n"
-   ${YUMDO} "${EXTRARPMS[@]}"
+   for RPM in "${EXTRARPMS[@]}"
+   do
+      { STDERR=$(${YUMDO} "$RPM" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
+   done
+
 else
    echo "No 'extra' RPMs requested"
 fi
