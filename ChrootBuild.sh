@@ -247,11 +247,17 @@ EXCLUDE_PKGS=(
     -sendmail
 )
 
+# Strip excluded pkgs from the include list
+for PKG in "${EXCLUDE_PKGS[@]}"
+do
+    mapfile -t INCLUDE_PKGS < <(printf '%s\n' "${INCLUDE_PKGS[@]}" | grep -xv "^${PKG/-/}$")
+done
+
 # Install main RPM-groups
 $YUMDO -- "${INCLUDE_PKGS[@]}" "${EXCLUDE_PKGS[@]}"
 
 # Validate all included packages were installed
-rpm -q "${INCLUDE_PKGS[@]}"
+rpm --root "${CHROOT}" -q "${INCLUDE_PKGS[@]}"
 
 # Install additionally-requested RPMs
 if [[ ! -z ${EXTRARPMS+xxx} ]]
