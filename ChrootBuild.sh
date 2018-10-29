@@ -175,7 +175,6 @@ INCLUDE_PKGS+=(
     cloud-init
     cloud-utils-growpart
     dracut-config-generic
-    dracut-norescue
     gdisk
     grub2
     grub2-tools
