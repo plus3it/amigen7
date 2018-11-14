@@ -8,7 +8,7 @@ SCRIPTROOT="$(dirname ${0})"
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 PROJECT="Lx-GetAMI-Utils"
 AMZNLXGIT="${1:-https://github.com/ferricoxide/${PROJECT}.git}"
-ELVERSION="el$(rpm --qf '%{version}' -q $(rpm -qf /etc/redhat-release))"
+ELVERSION="el$(rpm --qf '%{version}' -q $(rpm -qf /etc/redhat-release)| cut -d . -f 1)"
 
 # Fetch Amzn.Linux RPMs if necessary
 if [[ -d ${SCRIPTROOT}/../${PROJECT} ]]
