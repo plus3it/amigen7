@@ -168,7 +168,7 @@ esac
 
 # Setup the "include" package list
 INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
-INCLUDE_PKGS+=($(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u))
+INCLUDE_PKGS+=($(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u || true))
 INCLUDE_PKGS+=(
     authconfig
     chrony
@@ -187,6 +187,7 @@ INCLUDE_PKGS+=(
     ntpdate
     openssh-clients
     openssh-server
+    rdma-core
     rootfiles
     rsync
     selinux-policy-targeted
@@ -213,6 +214,7 @@ EXCLUDE_PKGS=(
     -alsa-firmware
     -alsa-lib
     -alsa-tools-firmware
+    -bfa-firmware
     -biosdevname
     -gcc-gfortran
     -iprutils
@@ -243,6 +245,10 @@ EXCLUDE_PKGS=(
     -nc
     -NetworkManager
     -plymouth
+    -ql2100-firmware
+    -ql2200-firmware
+    -ql23xx-firmware
+    -rdma
     -sendmail
 )
 
