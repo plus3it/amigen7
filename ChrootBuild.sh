@@ -187,6 +187,7 @@ INCLUDE_PKGS+=(
     ntpdate
     openssh-clients
     openssh-server
+    rdma-core
     rootfiles
     rsync
     selinux-policy-targeted
@@ -213,6 +214,7 @@ EXCLUDE_PKGS=(
     -alsa-firmware
     -alsa-lib
     -alsa-tools-firmware
+    -bfa-firmware
     -biosdevname
     -gcc-gfortran
     -iprutils
@@ -243,6 +245,10 @@ EXCLUDE_PKGS=(
     -nc
     -NetworkManager
     -plymouth
+    -ql2100-firmware
+    -ql2200-firmware
+    -ql23xx-firmware
+    -rdma
     -sendmail
 )
 
