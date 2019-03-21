@@ -55,6 +55,7 @@ function CarveLVM() {
 
    # Create LVM objects
    LVCSTAT=0
+   pvcreate "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "PV creation failed. Aborting!"
    vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
    lvcreate --yes -W y -L "${ROOTVOL[1]}" -n "${ROOTVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${SWAPVOL[1]}" -n "${SWAPVOL[0]}" "${VGNAME}" || LVCSTAT=1
@@ -99,7 +100,7 @@ function CarveLVM() {
       fi
    elif [[ ${FSTYPE} == xfs ]]
    then
-      if [[ $( xfs_admin -l "${CHROOTDEV}${PARTPRE}1" ) != ${BOOTLABEL} ]]
+      if [[ $( xfs_admin -l "${CHROOTDEV}${PARTPRE}1"  | sed -e 's/"$//' -e 's/^.*"//' ) != ${BOOTLABEL} ]]
       then
          xfs_admin -L "${CHROOTDEV}${PARTPRE}1" "${BOOTLABEL}" || \
             err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
