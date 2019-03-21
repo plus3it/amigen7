@@ -147,9 +147,9 @@ do
                   exit 1
                   ;;
                *)
-               BOOTLABEL=${2}
+                  BOOTLABEL=${2}
                   shift 2;
-               ;;
+                  ;;
             esac
             ;;
       -d|--disk)
@@ -160,9 +160,9 @@ do
                   exit 1
                   ;;
                *)
-               CHROOTDEV=${2}
+                  CHROOTDEV=${2}
                   shift 2;
-               ;;
+                  ;;
             esac
             ;;
       -f|--fstype)
@@ -191,9 +191,9 @@ do
                   exit 1
                   ;;
                *)
-               ROOTLABEL=${2}
+                  ROOTLABEL=${2}
                   shift 2;
-               ;;
+                  ;;
             esac
             ;;
       -v|--vgname)
@@ -206,7 +206,7 @@ do
                *)
                VGNAME=${2}
                   shift 2;
-               ;;
+                  ;;
             esac
             ;;
       --)
@@ -227,8 +227,9 @@ then
 else
    PARTPRE=""
 fi
-if [[ -z ${BOOTLABEL+xxx} ]]
 
+# Ensure BOOTLABEL has been specified
+if [[ -z ${BOOTLABEL+xxx} ]]
 then
    LogBrk 1 "Cannot continue without 'bootlabel' being specified. Aborting..."
 elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]
