@@ -106,7 +106,7 @@ function CarveLVM() {
             err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
       fi
    else
-      err_exit "Unrecognized fstype [${FSTYPE} specified. Aborting... "
+      err_exit "Unrecognized fstype [${FSTYPE}] specified. Aborting... "
    fi
 
 }
