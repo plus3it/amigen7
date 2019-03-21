@@ -7,6 +7,7 @@
 #######################################################################
 CHROOTDEV=${1:-UNDEF}
 ALTROOT="${CHROOT:-/mnt/ec2-root}"
+DEVFSTYP="${2:ext4}"
 
 if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
@@ -99,7 +100,16 @@ else
    for (( IDX=${#PARTS[@]}-1 ; IDX>=0 ; IDX-- ))
    do
       # Get partition-label
-      LABEL=$(e2label "/dev/${PARTS[IDX]}")
+      if [[ ${DEVFSTYP} == ext3 ]] ||
+         [[ ${DEVFSTYP} == ext4 ]]
+      then
+         LABEL=$(e2label "/dev/${PARTS[IDX]}")
+      elif [[ ${DEVFSTYP} == xfs ]]
+      then
+         LABEL=$( xfs_admin -l "/dev/${PARTS[IDX]}" | sed -e 's/"$//' -e 's/^.*"//' )
+      else
+         err_out 1 "Unable to determine fstype of /dev/${PARTS[IDX]}"
+      fi
 
       # Ensure mount-point exists
       if [[ ! -d ${ALTROOT}${MNTPTS[IDX]} ]]
