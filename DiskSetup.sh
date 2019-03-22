@@ -6,6 +6,7 @@
 #################################################################
 PROGNAME=$(basename "$0")
 BOOTDEVSZ="500m"
+FSTYPE="${FSTYPE:-ext4}"
 
 # Error-logging
 function err_exit {
@@ -46,14 +47,15 @@ function CarveLVM() {
    dd if=/dev/zero of="${CHROOTDEV}" bs=512 count=1000 > /dev/null 2>&1
 
    # Lay down the base partitions
-   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary ext4 2048s ${BOOTDEVSZ} \
-      mkpart primary ext4 ${BOOTDEVSZ} 100% set 2 lvm
+   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s ${BOOTDEVSZ} \
+      mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100% set 2 lvm
 
    # Stop/umount boot device, in case parted/udev/systemd managed to remount it
   systemctl stop boot.mount || true
 
    # Create LVM objects
    LVCSTAT=0
+   pvcreate "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "PV creation failed. Aborting!"
    vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
    lvcreate --yes -W y -L "${ROOTVOL[1]}" -n "${ROOTVOL[0]}" "${VGNAME}" || LVCSTAT=1
    lvcreate --yes -W y -L "${SWAPVOL[1]}" -n "${SWAPVOL[0]}" "${VGNAME}" || LVCSTAT=1
@@ -80,20 +82,33 @@ function CarveLVM() {
   systemctl stop boot.mount || true
 
    # Create filesystems
-   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
-   mkfs -t ext4 "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
-   mkfs -t ext4 "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
-   mkfs -t ext4 "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
-   mkfs -t ext4 "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
-   mkfs -t ext4 "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
+   mkfs -t "${FSTYPE}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
+   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
+   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
+   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
+   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
+   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
    mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
 
    # shellcheck disable=SC2053
-   if [[ $(e2label "${CHROOTDEV}${PARTPRE}1") != ${BOOTLABEL} ]]
+   if [[ ${FSTYPE} == ext3 ]] || [[ ${FSTYPE} == ext4 ]]
    then
-      e2label "${CHROOTDEV}${PARTPRE}1" "${BOOTLABEL}" || \
-         err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
+      if [[ $( e2label "${CHROOTDEV}${PARTPRE}1" ) != ${BOOTLABEL} ]]
+      then
+         e2label "${CHROOTDEV}${PARTPRE}1" "${BOOTLABEL}" || \
+            err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
+      fi
+   elif [[ ${FSTYPE} == xfs ]]
+   then
+      if [[ $( xfs_admin -l "${CHROOTDEV}${PARTPRE}1"  | sed -e 's/"$//' -e 's/^.*"//' ) != ${BOOTLABEL} ]]
+      then
+         xfs_admin -L "${CHROOTDEV}${PARTPRE}1" "${BOOTLABEL}" || \
+            err_exit "Failed to apply desired label to ${CHROOTDEV}${PARTPRE}1"
+      fi
+   else
+      err_exit "Unrecognized fstype [${FSTYPE}] specified. Aborting... "
    fi
+
 }
 
 # Partition with no LVM
@@ -102,12 +117,12 @@ function CarveBare() {
    dd if=/dev/zero of="${CHROOTDEV}" bs=512 count=1000 > /dev/null 2>&1
 
    # Lay down the base partitions
-   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary ext4 2048s "${BOOTDEVSZ}" \
-      mkpart primary ext4 ${BOOTDEVSZ} 100%
+   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s "${BOOTDEVSZ}" \
+      mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100%
 
    # Create FS on partitions
-   mkfs -t ext4 -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
-   mkfs -t ext4 -L "${ROOTLABEL}" "${CHROOTDEV}${PARTPRE}2"
+   mkfs -t "${FSTYPE}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
+   mkfs -t "${FSTYPE}" -L "${ROOTLABEL}" "${CHROOTDEV}${PARTPRE}2"
 }
 
 
@@ -115,7 +130,7 @@ function CarveBare() {
 ######################
 ## Main program-flow
 ######################
-OPTIONBUFR=$(getopt -o b:d:r:v: --long bootlabel:,disk:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o b:d:f:r:v: --long bootlabel:,disk:,fstype:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
 
@@ -126,57 +141,75 @@ while true
 do
    case "$1" in
       -b|--bootlabel)
-	    case "$2" in
-	       "")
-	          LogBrk 1 "Error: option required but not specified"
-	          shift 2;
-	          exit 1
-	          ;;
-	       *)
-               BOOTLABEL=${2}
-	          shift 2;
-	       ;;
-	    esac
-	    ;;
+            case "$2" in
+               "")
+                  LogBrk 1 "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  BOOTLABEL=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
       -d|--disk)
-	    case "$2" in
-	       "")
-	          LogBrk 1 "Error: option required but not specified"
-	          shift 2;
-	          exit 1
-	          ;;
-	       *)
-               CHROOTDEV=${2}
-	          shift 2;
-	       ;;
-	    esac
-	    ;;
+            case "$2" in
+               "")
+                  LogBrk 1 "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  CHROOTDEV=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      -f|--fstype)
+            case "$2" in
+               "")
+                  LogBrk 1 "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               ext3|ext4|xfs)
+                  FSTYPE=${2}
+                  shift 2;
+                  ;;
+               *)
+                  LogBrk 1 "Error: unrecognized/unsupported FSTYPE. Aborting..."
+                  shift 2;
+                  exit 1
+                  ;;
+            esac
+            ;;
       -r|--rootlabel)
-	    case "$2" in
-	       "")
-	          LogBrk 1"Error: option required but not specified"
-	          shift 2;
-	          exit 1
-	          ;;
-	       *)
-               ROOTLABEL=${2}
-	          shift 2;
-	       ;;
-	    esac
-	    ;;
+            case "$2" in
+               "")
+                  LogBrk 1"Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  ROOTLABEL=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
       -v|--vgname)
-	    case "$2" in
-	       "")
-	          LogBrk 1 "Error: option required but not specified"
-	          shift 2;
-	          exit 1
-	          ;;
-	       *)
+            case "$2" in
+               "")
+                  LogBrk 1 "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
                VGNAME=${2}
-	          shift 2;
-	       ;;
-	    esac
-	    ;;
+                  shift 2;
+                  ;;
+            esac
+            ;;
       --)
          shift
          break
@@ -195,8 +228,9 @@ then
 else
    PARTPRE=""
 fi
-if [[ -z ${BOOTLABEL+xxx} ]]
 
+# Ensure BOOTLABEL has been specified
+if [[ -z ${BOOTLABEL+xxx} ]]
 then
    LogBrk 1 "Cannot continue without 'bootlabel' being specified. Aborting..."
 elif [[ ! -z ${ROOTLABEL+xxx} ]] && [[ ! -z ${VGNAME+xxx} ]]

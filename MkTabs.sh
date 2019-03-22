@@ -59,7 +59,10 @@ do
          fi
          ;;
       xfs)
-         echo POINK
+         if [[ ! $( xfs_admin -l "${BLKDEV}" | sed -e 's/"$//' -e 's/^.*"//' ) == "" ]]
+         then
+            BLKDEV="LABEL=$( xfs_admin -l "${BLKDEV}" | sed -e 's/"$//' -e 's/^.*"//' )"
+         fi
          ;;
    esac
    printf "%s\t%s\t%s\tdefaults\t0 0\n" "${BLKDEV}" "${MNTPNT}" "${FSTYPE}"
