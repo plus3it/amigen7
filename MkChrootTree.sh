@@ -7,7 +7,7 @@
 #######################################################################
 CHROOTDEV=${1:-UNDEF}
 ALTROOT="${CHROOT:-/mnt/ec2-root}"
-DEVFSTYP="${2:ext4}"
+DEVFSTYP="${2:-ext4}"
 
 if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
