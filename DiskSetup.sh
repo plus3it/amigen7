@@ -228,7 +228,7 @@ do
 done
 
 # See if our carve-target is an NVMe
-if [[ ${CHROOTDEV} =~ /dev/nvme0 ]]
+if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
    PARTPRE="p"
 else
