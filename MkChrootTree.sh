@@ -1,5 +1,5 @@
 #!/bin/bash
-# shellcheck disable=SC2015
+# shellcheck disable=SC2015,SC2207
 #
 # Setup/mount chroot'ed volumes/partitions
 # * Takes the dev-path hosting the /boot and LVM partitions as argument

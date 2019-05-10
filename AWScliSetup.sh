@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2086
+# shellcheck disable=SC2086,SC2207,SC2236
 #
 # Script to automate and standardize installation of AWScli tools
 #
