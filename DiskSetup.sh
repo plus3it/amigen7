@@ -88,12 +88,12 @@ function CarveLVM() {
   systemctl stop boot.mount || true
 
    # Create filesystems
-   mkfs -t "${FSTYPE}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
-   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
-   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
-   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
-   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
-   mkfs -t "${FSTYPE}" "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
    mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
 
    # shellcheck disable=SC2053
@@ -127,8 +127,8 @@ function CarveBare() {
       mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100%
 
    # Create FS on partitions
-   mkfs -t "${FSTYPE}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
-   mkfs -t "${FSTYPE}" -L "${ROOTLABEL}" "${CHROOTDEV}${PARTPRE}2"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${ROOTLABEL}" "${CHROOTDEV}${PARTPRE}2"
 }
 
 
@@ -179,8 +179,14 @@ do
                   shift 2;
                   exit 1
                   ;;
-               ext3|ext4|xfs)
+               ext3|ext4)
                   FSTYPE=${2}
+                  MKFSFORCEOPT="-F"
+                  shift 2;
+                  ;;
+               xfs)
+                  FSTYPE=${2}
+                  MKFSFORCEOPT="-f"
                   shift 2;
                   ;;
                *)
