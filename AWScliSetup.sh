@@ -20,7 +20,7 @@ PRIVREPOS="${3}"
 AWSZIP="/tmp/${BUNDLE}"
 
 # Make sure the AMZN.Linux packages are present
-AMZNRPMS=($( stat -c '%n' ${SCRIPTROOT}/AWSpkgs/*noarch.rpm))
+AMZNRPMS=($( stat -c '%n' ${SCRIPTROOT}/AWSpkgs/*.el7.*.rpm))
 if [[ ${#AMZNRPMS[@]} -eq 0 ]]
 then
    (
@@ -82,5 +82,5 @@ rm -rf "${CHROOT}/root/awscli-bundle"
 # in the search directory.
 { STDERR=$(yum install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
 { STDERR=$(yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
-yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.noarch.rpm \
+yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm \
    || exit $?
