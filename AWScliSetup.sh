@@ -1,5 +1,5 @@
 #!/bin/sh
-# shellcheck disable=SC2086,SC2207,SC2236
+# shellcheck disable=SC2086,SC2207,SC2236,SC2015
 #
 # Script to automate and standardize installation of AWScli tools
 #
@@ -18,6 +18,12 @@ ZIPSRC="${1:-https://s3.amazonaws.com/aws-cli/awscli-bundle.zip}"
 EPELRELEASE="${2:-https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm}"
 PRIVREPOS="${3}"
 AWSZIP="/tmp/${BUNDLE}"
+SYSTEMDSVCS=(
+      autotune.service
+      amazon-ssm-agent.service
+      hibinit-agent.service
+      ec2-instance-connect.service
+   )
 
 # Make sure the AMZN.Linux packages are present
 AMZNRPMS=($( stat -c '%n' ${SCRIPTROOT}/AWSpkgs/*.el7.*.rpm))
@@ -84,3 +90,11 @@ rm -rf "${CHROOT}/root/awscli-bundle"
 { STDERR=$(yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
 yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm \
    || exit $?
+
+# Need to force systemd services to be enabled in resultant AMI
+for SVC in "${SYSTEMDSVCS[@]}"
+do
+   printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
+   chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
+     ( echo "FAILED" ; exit 1 )
+done
