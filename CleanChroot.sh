@@ -35,6 +35,9 @@ then
    chroot "${CHROOT}" systemd-tmpfiles --create --prefix /var/log/journal
 fi
 
+# Help prevent longer-lived systems running out of space on /boot
+sed -i '/^installonly_limit=/s/[0-9][0-9]*$/2/' "${CHROOT}/etc/yum.conf"
+
 # Set TZ to UTC
 rm "${CHROOT}/etc/localtime"
 cp "${CHROOT}/usr/share/zoneinfo/UTC" "${CHROOT}/etc/localtime"
