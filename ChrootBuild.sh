@@ -168,6 +168,16 @@ esac
 
 # Setup the "include" package list
 INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+
+# Detect if target-reposity has requisite metadata
+if [[ ${INCLUDE_PKGS[*]} == "" ]]
+then
+   echo "Unable to fetch group metadata from target yum-repository. ABORTING."
+   exit 1
+else
+   echo "Fetched group metadata from target yum-repository."
+fi
+
 INCLUDE_PKGS+=($(rpm --qf '%{name}\n' -qf /etc/yum.repos.d/* 2>&1 | grep -v "not owned" | sort -u || true))
 INCLUDE_PKGS+=(
     authconfig
