@@ -15,6 +15,28 @@ function err_exit {
    exit 1
 }
 
+# Print out a basic usage message
+function UsageMsg {
+   (
+      echo "Usage: ${0} [GNU long option] [option] ..."
+      echo "  Options:"
+      printf "\t-b <BOOT_LABEL>\n"
+      printf "\t-d <BOOT_DEV_PATH>\n"
+      printf "\t-f <FSTYPE>\n"
+      printf "\t-p <PARTITION_STRING>\n"
+      printf "\t-r <ROOT_FS_LABEL>\n"
+      printf "\t-v <ROOT_VG_NAME>\n"
+      echo "  GNU long options:"
+      printf "\t--bootlabel <BOOT_LABEL>\n"
+      printf "\t--disk <BOOT_DEV_PATH>\n"
+      printf "\t--fstype <FSTYPE>\n"
+      printf "\t--partitioning <PARTITION_STRING>\n"
+      printf "\t--rootlabel <ROOT_FS_LABEL>\n"
+      printf "\t--vgname <ROOT_VG_NAME>\n"
+   )
+   exit 1
+}
+
 # Check for arguments
 if [[ $# -lt 1 ]]
 then
@@ -29,13 +51,13 @@ then
    exit 1
 fi
 
-function LogBrk() {
+function LogBrk {
    echo "${2}" > /dev/stderr
    exit "${1}"
 }
 
 # Partition as LVM
-function CarveLVM() {
+function CarveLVM {
    local ROOTVOL=(rootVol 4g)
    local SWAPVOL=(swapVol 2g)
    local HOMEVOL=(homeVol 1g)
@@ -118,7 +140,7 @@ function CarveLVM() {
 }
 
 # Partition with no LVM
-function CarveBare() {
+function CarveBare {
    # Clear the MBR and partition table
    dd if=/dev/zero of="${CHROOTDEV}" bs=512 count=1000 > /dev/null 2>&1
 
@@ -136,7 +158,7 @@ function CarveBare() {
 ######################
 ## Main program-flow
 ######################
-OPTIONBUFR=$(getopt -o b:d:f:r:v: --long bootlabel:,disk:,fstype:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o b:d:f:hp:r:v: --long bootlabel:,disk:,fstype:,help,partitioning:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
 
@@ -193,6 +215,22 @@ do
                   LogBrk 1 "Error: unrecognized/unsupported FSTYPE. Aborting..."
                   shift 2;
                   exit 1
+                  ;;
+            esac
+            ;;
+      -h|--help)
+            UsageMsg
+            ;;
+      -p|--partitioning)
+            case "$2" in
+               "")
+                  LogBrk 1"Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  GEOMETRYSTRING=${2}
+                  shift 2;
                   ;;
             esac
             ;;
