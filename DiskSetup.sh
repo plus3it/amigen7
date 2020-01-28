@@ -58,12 +58,28 @@ function LogBrk {
 
 # Partition as LVM
 function CarveLVM {
-   local ROOTVOL=(rootVol 4g)
-   local SWAPVOL=(swapVol 2g)
-   local HOMEVOL=(homeVol 1g)
-   local VARVOL=(varVol 2g)
-   local LOGVOL=(logVol 2g)
-   local AUDVOL=(auditVol 100%FREE)
+   local PARTITIONSTR
+   local PARTITIONARRAY
+   local MOUNTPT
+   local VOLNAME
+   local VOLSIZE
+
+   # Whether to use flag-passed partition-string or default values
+   if [ -z ${GEOMETRYSTRING+x} ]
+   then
+       # This is fugly but might(??) be easier for others to follow/update
+       PARTITIONSTR="/:rootVol:4"
+       PARTITIONSTR="${PARTITIONSTR},swap:swapVol:2"
+       PARTITIONSTR="${PARTITIONSTR},/home:homeVol:1"
+       PARTITIONSTR="${PARTITIONSTR},/var:varVol:2"
+       PARTITIONSTR="${PARTITIONSTR},/var/log:logVol:2"
+       PARTITIONSTR="${PARTITIONSTR},/var/log/audit:auditVol:100%FREE"
+   else
+       PARTITIONSTR="${GEOMETRYSTRING}"
+   fi
+
+   # Convert ${PARTITIONSTR} to iterable array
+   IFS=',' read -r -a PARTITIONARRAY <<< "${PARTITIONSTR}"
 
    # Clear the MBR and partition table
    dd if=/dev/zero of="${CHROOTDEV}" bs=512 count=1000 > /dev/null 2>&1
@@ -71,32 +87,6 @@ function CarveLVM {
    # Lay down the base partitions
    parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s ${BOOTDEVSZ} \
       mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100% set 2 lvm
-
-   # Stop/umount boot device, in case parted/udev/systemd managed to remount it
-  systemctl stop boot.mount || true
-
-   # Create LVM objects
-   LVCSTAT=0
-   # Let's only attempt this if we're a secondary EBS
-   if [[ ${CHROOTDEV} == /dev/xvda ]] || [[ ${CHROOTDEV} == /dev/nvme0n1 ]]
-   then
-      echo "Skipping explicit pvcreate opertion... " 
-   else
-      pvcreate "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "PV creation failed. Aborting!"
-   fi
-   vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
-   lvcreate --yes -W y -L "${ROOTVOL[1]}" -n "${ROOTVOL[0]}" "${VGNAME}" || LVCSTAT=1
-   lvcreate --yes -W y -L "${SWAPVOL[1]}" -n "${SWAPVOL[0]}" "${VGNAME}" || LVCSTAT=1
-   lvcreate --yes -W y -L "${HOMEVOL[1]}" -n "${HOMEVOL[0]}" "${VGNAME}" || LVCSTAT=1
-   lvcreate --yes -W y -L "${VARVOL[1]}" -n "${VARVOL[0]}" "${VGNAME}" || LVCSTAT=1
-   lvcreate --yes -W y -L "${LOGVOL[1]}" -n "${LOGVOL[0]}" "${VGNAME}" || LVCSTAT=1
-   lvcreate --yes -W y -l "${AUDVOL[1]}" -n "${AUDVOL[0]}" "${VGNAME}" || LVCSTAT=1
-
-   if [[ ${LVCSTAT} = 1 ]]
-   then
-      echo "Failed creating one or more volumes. Aborting"
-      exit 1
-   fi
 
    # Gather info to diagnose seeming /boot race condition
    if [[ $(grep -q "${BOOTLABEL}" /proc/mounts)$? -eq 0 ]]
@@ -107,16 +97,52 @@ function CarveLVM {
 
    # Stop/umount boot device, in case parted/udev/systemd managed to remount it
    # again.
-  systemctl stop boot.mount || true
+   systemctl stop boot.mount || true
 
-   # Create filesystems
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1" || err_exit "Failure creating filesystem - /boot"
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${ROOTVOL[0]}" || err_exit "Failure creating filesystem - /"
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${HOMEVOL[0]}" || err_exit "Failure creating filesystem - /home"
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${VARVOL[0]}" || err_exit "Failure creating filesystem - /var"
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${LOGVOL[0]}" || err_exit "Failure creating filesystem - /var/log"
-   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${AUDVOL[0]}" || err_exit "Failure creating filesystem - /var/log/audit"
-   mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
+   # Create /boot filesystem
+   mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${BOOTLABEL}" \
+     "${CHROOTDEV}${PARTPRE}1" || \
+       err_exit "Failure creating filesystem - /boot"
+
+   ## Create LVM objects
+
+   # Let's only attempt this if we're a secondary EBS
+   if [[ ${CHROOTDEV} == /dev/xvda ]] || [[ ${CHROOTDEV} == /dev/nvme0n1 ]]
+   then
+      echo "Skipping explicit pvcreate opertion... " 
+   else
+      pvcreate "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "PV creation failed. Aborting!"
+   fi
+
+   # Create root VolumeGroup
+   vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
+
+   # Create LVM2 volume-objects by iterating ${PARTITIONARRAY}
+   for ARRAYELEM in ${PARTITIONARRAY[*]}
+   do
+      MOUNTPT="$( cut -d ':' -f 1 <<< "${ARRAYELEM}")"
+      VOLNAME="$( cut -d ':' -f 2 <<< "${ARRAYELEM}")"
+      VOLSIZE="$( cut -d ':' -f 3 <<< "${ARRAYELEM}")"
+
+      # Create LVs
+      if [[ ${VOLSIZE} =~ FREE ]]
+      then
+         lvcreate --yes -W y -l "100%FREE" -n "${VOLNAME}" "${VGNAME}" || \
+           err_exit "Failure creating LVM2 volume '${VOLNAME}'"
+      else
+         lvcreate --yes -W y -L "${VOLSIZE}g" -n "${VOLNAME}" "${VGNAME}" || \
+           err_exit "Failure creating LVM2 volume '${VOLNAME}'"
+      fi
+
+      # Create FSes on LVs
+      if [[ ${MOUNTPT} == swap ]]
+      then
+         mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
+      else
+         mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${VOLNAME}" \
+            || err_exit "Failure creating filesystem for '${MOUNTPT}'"
+      fi
+   done
 
    # shellcheck disable=SC2053
    if [[ ${FSTYPE} == ext3 ]] || [[ ${FSTYPE} == ext4 ]]
