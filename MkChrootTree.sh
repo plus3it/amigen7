@@ -8,6 +8,7 @@
 CHROOTDEV=${1:-UNDEF}
 ALTROOT="${CHROOT:-/mnt/ec2-root}"
 DEVFSTYP="${2:-ext4}"
+GEOMETRYSTRING="${3:-/:rootVol:4,swap:swapVol:2,/home:homeVol:1,/var:varVol:2,/var/log:logVol:2,/var/log/audit:auditVol:100%FREE}"
 
 if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
@@ -25,6 +26,54 @@ function err_out() {
    echo "${2}"
    exit "${1}"
 }
+
+# Allow partition-string input to be arbitrarily ordered
+function CustomMount {
+   local LSTELEM
+   local MOUNTS
+   local MTELEM
+   local MTSSORTED
+   local PARTITIONARRAY
+   local PARTITIONSTR
+
+   PARTITIONSTR="${GEOMETRYSTRING}"
+   MOUNTS=()
+   SORTEDARRAY=()
+
+   # Convert ${PARTITIONSTR} to iterable partition-info array
+   IFS=',' read -r -a PARTITIONARRAY <<< "${PARTITIONSTR}"
+   unset IFS
+
+   # Extract iterable-list of mountpoints from partition-info array
+   while [[ ${COUNT} -lt ${#PARTITIONARRAY[*]} ]]
+   do
+      MOUNTS+=( "${PARTITIONARRAY[${COUNT}]//:*/}" )
+      COUNT=$(( COUNT + 1 ))
+   done
+
+   # Sort the MOUNTS array
+   IFS=$'\n' MTSSORTED=( $( sort <<< "${MOUNTS[*]}" ) )
+   unset IFS
+
+   # Use sorted MOUNTS array to sort the partition-info array
+   # This feels gross: soooooper inefficient
+   for MTELEM in ${MTSSORTED[*]}
+   do
+       for LSTELEM in ${PARTITIONARRAY[*]}
+       do
+          if [[ ${MTELEM} == "${LSTELEM//:*/}" ]]
+          then
+             SORTEDARRAY+=( "${LSTELEM}" )
+          fi
+       done
+   done
+}
+
+
+##########
+## MAIN ##
+##########
+CustomMount
 
 # Can't do anything if we don't have an EBS to operate on
 if [[ ${CHROOTDEV} = UNDEF ]]
