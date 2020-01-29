@@ -137,7 +137,7 @@ function CarveLVM {
       # Create FSes on LVs
       if [[ ${MOUNTPT} == swap ]]
       then
-         mkswap "/dev/${VGNAME}/${SWAPVOL[0]}"
+         mkswap "/dev/${VGNAME}/${VOLNAME}"
       else
          mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${VOLNAME}" \
             || err_exit "Failure creating filesystem for '${MOUNTPT}'"

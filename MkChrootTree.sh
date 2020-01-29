@@ -29,6 +29,7 @@ function err_out() {
 
 # Allow partition-string input to be arbitrarily ordered
 function SortDiskGeomString {
+   local COUNT
    local LSTELEM
    local MOUNTS
    local MTELEM
@@ -36,8 +37,9 @@ function SortDiskGeomString {
    local PARTITIONARRAY
    local PARTITIONSTR
 
-   PARTITIONSTR="${GEOMETRYSTRING}"
+   COUNT=0
    MOUNTS=()
+   PARTITIONSTR="${GEOMETRYSTRING}"
    SORTEDARRAY=()
 
    # Convert ${PARTITIONSTR} to iterable partition-info array
