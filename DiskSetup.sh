@@ -61,6 +61,7 @@ function CarveLVM {
    local PARTITIONSTR
    local PARTITIONARRAY
    local MOUNTPT
+   local VOLFLAG
    local VOLNAME
    local VOLSIZE
 
@@ -127,12 +128,14 @@ function CarveLVM {
       # Create LVs
       if [[ ${VOLSIZE} =~ FREE ]]
       then
-         lvcreate --yes -W y -l "100%FREE" -n "${VOLNAME}" "${VGNAME}" || \
-           err_exit "Failure creating LVM2 volume '${VOLNAME}'"
+         VOLFLAG="-l"
+         VOLSIZE="100%FREE"
       else
-         lvcreate --yes -W y -L "${VOLSIZE}g" -n "${VOLNAME}" "${VGNAME}" || \
-           err_exit "Failure creating LVM2 volume '${VOLNAME}'"
+         VOLFLAG="-L"
+         VOLSIZE+="g"
       fi
+      lvcreate --yes -W y "${VOLFLAG}" "${VOLSIZE}" -n "${VOLNAME}" "${VGNAME}" || \
+        err_exit "Failure creating LVM2 volume '${VOLNAME}'"
 
       # Create FSes on LVs
       if [[ ${MOUNTPT} == swap ]]
