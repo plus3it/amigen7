@@ -12,6 +12,7 @@ Note: The scripts _can_ also be used to generate bootstrap and/or recovery AMIs:
   * Select a suitable, generic AMI (e.g. one published by Red Hat, Inc. or CentOS.Org) to use to bootstrap the new AMI from (see the [AMI selection](Docs/README_BootstrapAMIselection.md) README)
   * Via build-instance hosted on a [Public Network](Docs/README_PublicRun.md)
   * Via build-instance hosted on a [Private Network](Docs/README_PrivateRun.md)
+  * Instructions for [customizing filesystem layouts](Docs/README_CustomPartitioning.md) in resultant AMIs
   * Instructions for [selecting filesystem-type](Docs/README_XFS.md) in resultant AMIs
 * Verify that the resultant AMI supports the expected features (see the [Instance Verification](Docs/README_InstanceVerification.md) README)
 * [Planned Enhancements](Docs/README_enhancements.md)
