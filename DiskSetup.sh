@@ -69,11 +69,11 @@ function CarveLVM {
    then
        # This is fugly but might(??) be easier for others to follow/update
        PARTITIONSTR="/:rootVol:4"
-       PARTITIONSTR="${PARTITIONSTR},swap:swapVol:2"
-       PARTITIONSTR="${PARTITIONSTR},/home:homeVol:1"
-       PARTITIONSTR="${PARTITIONSTR},/var:varVol:2"
-       PARTITIONSTR="${PARTITIONSTR},/var/log:logVol:2"
-       PARTITIONSTR="${PARTITIONSTR},/var/log/audit:auditVol:100%FREE"
+       PARTITIONSTR+=",swap:swapVol:2"
+       PARTITIONSTR+=",/home:homeVol:1"
+       PARTITIONSTR+=",/var:varVol:2"
+       PARTITIONSTR+=",/var/log:logVol:2"
+       PARTITIONSTR+=",/var/log/audit:auditVol:100%FREE"
    else
        PARTITIONSTR="${GEOMETRYSTRING}"
    fi
