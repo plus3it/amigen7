@@ -27,63 +27,33 @@ function err_out() {
    exit "${1}"
 }
 
-# Allow partition-string input to be arbitrarily ordered
-function SortDiskGeomString {
-   local COUNT
-   local LSTELEM
-   local MOUNTS
-   local MTELEM
-   local MTSSORTED
+# Set up base mounts using info from SORTEDARRAY
+function FlexMount {
+   local ELEM
+   local MOUNTINFO
+   local MOUNTPT
    local PARTITIONARRAY
    local PARTITIONSTR
 
-   COUNT=0
-   MOUNTS=()
+   declare -A MOUNTINFO
    PARTITIONSTR="${GEOMETRYSTRING}"
-   SORTEDARRAY=()
 
    # Convert ${PARTITIONSTR} to iterable partition-info array
    IFS=',' read -r -a PARTITIONARRAY <<< "${PARTITIONSTR}"
    unset IFS
 
-   # Extract iterable-list of mountpoints from partition-info array
-   while [[ ${COUNT} -lt ${#PARTITIONARRAY[*]} ]]
+   # Create associative-array with mountpoints as keys
+   for ELEM in ${PARTITIONARRAY[*]}
    do
-      MOUNTS+=( "${PARTITIONARRAY[${COUNT}]//:*/}" )
-      COUNT=$(( COUNT + 1 ))
+      MOUNTINFO[${ELEM//:*/}]=${ELEM#*:}
    done
-
-   # Sort the MOUNTS array
-   IFS=$'\n' MTSSORTED=( $( sort <<< "${MOUNTS[*]}" ) )
-   unset IFS
-
-   # Use sorted MOUNTS array to sort the partition-info array
-   # This feels gross: soooooper inefficient
-   for MTELEM in ${MTSSORTED[*]}
-   do
-       for LSTELEM in ${PARTITIONARRAY[*]}
-       do
-          if [[ ${MTELEM} == "${LSTELEM//:*/}" ]]
-          then
-             SORTEDARRAY+=( "${LSTELEM}" )
-          fi
-       done
-   done
-}
-
-# Set up base mounts using info from SORTEDARRAY
-function FlexMount {
-   local VOLNAME
-   local MOUNTPT
 
    # Ensure all LVM volumes are active
    vgchange -a y "${VGNAME}" || err_out 2 "Failed to activate LVM"
 
    # Mount volumes
-   for ARRAYITEM in ${SORTEDARRAY[*]}
+   for MOUNTPT in $( echo "${!MOUNTINFO[*]}" | tr " " "\n" | sort )
    do
-      MOUNTPT="$( cut -d ':' -f 1 <<< "${ARRAYITEM}" )"
-      VOLNAME="$( cut -d ':' -f 2 <<< "${ARRAYITEM}" )"
 
       # Ensure mountpoint exists
       if [[ ! -d ${ALTROOT}/${MOUNTPT} ]]
@@ -95,9 +65,9 @@ function FlexMount {
       if [[ ${MOUNTPT} == /* ]]
       then
          echo "Mounting '${ALTROOT}${MOUNTPT}'..."
-         mount -t "${DEVFSTYP}" "/dev/${VGNAME}/${VOLNAME}" \
+         mount -t "${DEVFSTYP}" "/dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}" \
            "${ALTROOT}${MOUNTPT}" || \
-             err_out 1 "Unable to mount /dev/${VGNAME}/${VOLNAME}"
+             err_out 1 "Unable to mount /dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}"
       else
          echo "Skipping '${MOUNTPT}'..."
       fi
@@ -118,7 +88,6 @@ function FlexMount {
 ##########
 ## MAIN ##
 ##########
-SortDiskGeomString
 
 # Can't do anything if we don't have an EBS to operate on
 if [[ ${CHROOTDEV} = UNDEF ]]
