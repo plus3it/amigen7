@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # shellcheck disable=SC2181,SC2236
 #
 # Script to automate basic setup of CHROOT device
@@ -7,6 +7,10 @@
 PROGNAME=$(basename "$0")
 BOOTDEVSZ="500m"
 FSTYPE="${FSTYPE:-ext4}"
+
+# Function-abort hooks
+trap "exit 1" TERM
+export TOP_PID=$$
 
 # Error-logging
 function err_exit {
@@ -58,9 +62,10 @@ function LogBrk {
 
 # Partition as LVM
 function CarveLVM {
-   local PARTITIONSTR
-   local PARTITIONARRAY
+   local ITER
    local MOUNTPT
+   local PARTITIONARRAY
+   local PARTITIONSTR
    local VOLFLAG
    local VOLNAME
    local VOLSIZE
@@ -119,17 +124,25 @@ function CarveLVM {
    vgcreate -y "${VGNAME}" "${CHROOTDEV}${PARTPRE}2" || LogBrk 5 "VG creation failed. Aborting!"
 
    # Create LVM2 volume-objects by iterating ${PARTITIONARRAY}
-   for ARRAYELEM in ${PARTITIONARRAY[*]}
+   ITER=0
+   while [[ ${ITER} -lt ${#PARTITIONARRAY[*]} ]]
    do
-      MOUNTPT="$( cut -d ':' -f 1 <<< "${ARRAYELEM}")"
-      VOLNAME="$( cut -d ':' -f 2 <<< "${ARRAYELEM}")"
-      VOLSIZE="$( cut -d ':' -f 3 <<< "${ARRAYELEM}")"
+      MOUNTPT="$( cut -d ':' -f 1 <<< "${PARTITIONARRAY[${ITER}]}")"
+      VOLNAME="$( cut -d ':' -f 2 <<< "${PARTITIONARRAY[${ITER}]}")"
+      VOLSIZE="$( cut -d ':' -f 3 <<< "${PARTITIONARRAY[${ITER}]}")"
 
       # Create LVs
       if [[ ${VOLSIZE} =~ FREE ]]
       then
-         VOLFLAG="-l"
-         VOLSIZE="100%FREE"
+         # Make sure 'FREE' is given as last list-element
+         if [[ $(( ITER += 1 )) -eq ${#PARTITIONARRAY[*]} ]]
+         then
+            VOLFLAG="-l"
+            VOLSIZE="100%FREE"
+         else
+            echo "Using 'FREE' before final list-element. Aborting..."
+            kill -s TERM " ${TOP_PID}"
+         fi
       else
          VOLFLAG="-L"
          VOLSIZE+="g"
@@ -145,6 +158,8 @@ function CarveLVM {
          mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" "/dev/${VGNAME}/${VOLNAME}" \
             || err_exit "Failure creating filesystem for '${MOUNTPT}'"
       fi
+
+      (( ITER+=1 ))
    done
 
    # shellcheck disable=SC2053
