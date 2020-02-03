@@ -26,13 +26,13 @@ To change the storage layout<sup>[1](#Footnote1)</sup>, it will be necessary to:
 
     `/:rootVol:8,swap:swapVol:4,/opt:optVol:20,/var:varVol:8,/var/log/audit:auditVol:100%FREE`
 
-    The string is a comma-delimited list of colon-delimited value-triplets where:
+    The string is a comma-delimited list of colon-delimited tuples where:
 
     * First Value: path to mount the filesystem to
     * Second Value: name to assign to the LVM2 volume hosting the filesystem
     * Third Value: size (in GiB) of the LVM2 volume and associated filesystem to create
 
-    Any valid group of value-triplets that fit within the size of the EBS selected in the firt step should work. To avoid wasting disk space, it is recommended that one value-triplet substitute the value `FREE` or `100%FREE` for the numerical value<sup>[2](#Footnote2)</sup>.
+    Any valid group of tuples that fit within the size of the EBS selected in the firt step should work. To avoid wasting disk space, it is recommended that one tuple substitutes the value `FREE` or `100%FREE` for the numerical value<sup>[2](#Footnote2),[3](#Footnote3)</sup>.
     
 1. Invoke the `MkChrootTree.sh` utility with third argument-string identical to the one passed to the `DiskSetup.sh` utility
 1. Invoke the remaining utilities as normal for the relevant deployment-context 
@@ -41,4 +41,6 @@ To change the storage layout<sup>[1](#Footnote1)</sup>, it will be necessary to:
 
 <a name="Footnote1">1</a>: If one wishes to main compliant with the STIGs' partitioning-specitication, it will be necessary to ensure that the customized-layout also includes all the filesystems enumerated in the default behavior section.
 
-<a name="Footnote2">2</a>: To date, this has only been tested with the `/var/log/audit`/`auditVol` filesystem/volume
+<a name="Footnote2">3</a>: If specifying a partition/volume-size using the `FREE` or `100%FREE` method, doing so _must_ be done in the final tuple of the partition-string.
+
+<a name="Footnote3">3</a>: To date, this has only been tested with the `/var/log/audit`/`auditVol` filesystem/volume
