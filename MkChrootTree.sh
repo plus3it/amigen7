@@ -8,6 +8,7 @@
 CHROOTDEV=${1:-UNDEF}
 ALTROOT="${CHROOT:-/mnt/ec2-root}"
 DEVFSTYP="${2:-ext4}"
+GEOMETRYSTRING="${3:-/:rootVol:4,swap:swapVol:2,/home:homeVol:1,/var:varVol:2,/var/log:logVol:2,/var/log/audit:auditVol:100%FREE}"
 
 if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
@@ -25,6 +26,68 @@ function err_out() {
    echo "${2}"
    exit "${1}"
 }
+
+# Set up base mounts using info from SORTEDARRAY
+function FlexMount {
+   local ELEM
+   local MOUNTINFO
+   local MOUNTPT
+   local PARTITIONARRAY
+   local PARTITIONSTR
+
+   declare -A MOUNTINFO
+   PARTITIONSTR="${GEOMETRYSTRING}"
+
+   # Convert ${PARTITIONSTR} to iterable partition-info array
+   IFS=',' read -r -a PARTITIONARRAY <<< "${PARTITIONSTR}"
+   unset IFS
+
+   # Create associative-array with mountpoints as keys
+   for ELEM in ${PARTITIONARRAY[*]}
+   do
+      MOUNTINFO[${ELEM//:*/}]=${ELEM#*:}
+   done
+
+   # Ensure all LVM volumes are active
+   vgchange -a y "${VGNAME}" || err_out 2 "Failed to activate LVM"
+
+   # Mount volumes
+   for MOUNTPT in $( echo "${!MOUNTINFO[*]}" | tr " " "\n" | sort )
+   do
+
+      # Ensure mountpoint exists
+      if [[ ! -d ${ALTROOT}/${MOUNTPT} ]]
+      then
+          install -dDm 000755 "${ALTROOT}/${MOUNTPT}"
+      fi
+
+      # Mount the filesystem
+      if [[ ${MOUNTPT} == /* ]]
+      then
+         echo "Mounting '${ALTROOT}${MOUNTPT}'..."
+         mount -t "${DEVFSTYP}" "/dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}" \
+           "${ALTROOT}${MOUNTPT}" || \
+             err_out 1 "Unable to mount /dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}"
+      else
+         echo "Skipping '${MOUNTPT}'..."
+      fi
+   done
+
+   # Ensure next-level mountpoints in / all exist
+   mkdir -p "${ALTROOT}"/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
+
+   # Ensure next-level mountpoints in /var all exist
+   mkdir -p "${ALTROOT}"/var/{cache,log,lib/{,rpm},tmp}
+
+   # Mount the boot-root
+   echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
+   mount "${BOOTDEV}" "${ALTROOT}/boot/" || err_out 2 "Mount Failed"
+}
+
+
+##########
+## MAIN ##
+##########
 
 # Can't do anything if we don't have an EBS to operate on
 if [[ ${CHROOTDEV} = UNDEF ]]
@@ -44,6 +107,7 @@ else
    echo "Success!"
 fi
 
+# Ensure that we can find mountable LVM objects
 VGNAME=$(lsblk -i -o NAME,TYPE "${LVMDEV}" | grep -w lvm | \
          sed 's/^ *.-//' | cut -d "-" -f 1 | uniq)
 
@@ -51,39 +115,9 @@ VGNAME=$(lsblk -i -o NAME,TYPE "${LVMDEV}" | grep -w lvm | \
 if [[ ${#VGNAME} -gt 0 ]]
 then
 
-   # Ensure all LVM volumes are active
-   vgchange -a y "${VGNAME}" || err_out 2 "Failed to activate LVM"
+   # Offload mounting LVM2 objects to function
+   FlexMount
 
-   # Mount chroot base device
-   echo "Mounting /dev/${VGNAME}/rootVol to ${ALTROOT}"
-   mount "/dev/${VGNAME}/rootVol" "${ALTROOT}/" || err_out 2 "Mount Failed"
-
-   # Prep for next-level mounts
-   mkdir -p "${ALTROOT}"/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
-
-   # Mount the boot-root
-   echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
-   mount "${BOOTDEV}" "${ALTROOT}/boot/" || err_out 2 "Mount Failed"
-
-   # Mount first of /var hierarchy
-   echo "Mounting /dev/${VGNAME}/varVol to ${ALTROOT}/var"
-   mount "/dev/${VGNAME}/varVol" "${ALTROOT}/var/" || err_out 2 "Mount Failed"
-
-   # Prep next-level mountpoints
-   mkdir -p "${ALTROOT}"/var/{cache,log,lib/{,rpm},tmp}
-
-   # Mount log volume
-   echo "Mounting /dev/${VGNAME}/logVol to ${ALTROOT}/var/log"
-   mount "/dev/${VGNAME}/logVol" "${ALTROOT}/var/log" 
-
-   # Mount audit volume
-   mkdir "${ALTROOT}/var/log/audit"
-   echo "Mounting /dev/${VGNAME}/auditVol to ${ALTROOT}/var/log/audit"
-   mount "/dev/${VGNAME}/auditVol" "${ALTROOT}/var/log/audit"
-
-   # Mount the rest
-   echo "Mounting /dev/${VGNAME}/homeVol to ${ALTROOT}/home"
-   mount "/dev/${VGNAME}/homeVol" "${ALTROOT}/home/"
 else
    ########################################################
    ## NOTE: This section assumes a simple, two-partition ##
