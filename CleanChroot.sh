@@ -62,6 +62,7 @@ system_info:\
     groups: [wheel, adm]\
     sudo: ["ALL=(root) NOPASSWD:ALL"]\
     shell: /bin/bash\
+    selinux_user: unconfined_u\
   distro: rhel\
   paths:\
     cloud_dir: /var/lib/cloud\
@@ -69,4 +70,7 @@ system_info:\
   ssh_svcname: sshd\
 ' "${CLOUDCFG}"
 fi
+
+# Update NS-Switch map-file for SEL-enabled environment
+printf "%-12s %s\n" sudoers: files >> "${CHROOT}/etc/nsswitch.conf"
 
