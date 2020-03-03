@@ -29,6 +29,28 @@ FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 MANIFESTFILE=""
 YCM="/bin/yum-config-manager"
 
+# Print out a basic usage message
+function UsageMsg {
+   (
+## r:b:e:hm:
+## repouri:,bonusrepos:,extras:,help,pkg-manifest:
+      echo "Usage: ${0} [GNU long option] [option] ..."
+      echo "  Options:"
+      printf "\t-b <REPOS_TO_ACTIVATE>\n"
+      printf "\t-e <EXTRA_RPMS>\n"
+      printf "\t-h print this message\n"
+      printf "\t-m <PKG_MANIFEST_FILE>\n"
+      printf "\t-r <REPO_RPM_URIs>\n"
+      echo "  GNU long options:"
+      printf "\t--bonusrepos <REPOS_TO_ACTIVATE>\n"
+      printf "\t--extras <EXTRA_RPMS>\n"
+      printf "\t--help print this message\n"
+      printf "\t--pkg-manifest <PKG_MANIFEST_FILE>\n"
+      printf "\t--repouri <REPO_RPM_URIs>\n"
+   )
+   exit 1
+}
+
 function PrepChroot() {
    local REPOPKGS=($(echo \
                      "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
@@ -85,7 +107,7 @@ function PrepChroot() {
 ######################
 
 # See if we'e passed any valid flags
-OPTIONBUFR=$(getopt -o r:b:e:m: --long repouri:bonusrepos:extras:pkg-manifest: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o r:b:e:hm: --long repouri:,bonusrepos:,extras:,help,pkg-manifest: -n "${PROGNAME}" -- "$@")
 eval set -- "${OPTIONBUFR}"
 
 while true
@@ -130,6 +152,9 @@ do
 	       ;;
 	 esac
 	 ;;
+      -h|--help)
+         UsageMsg
+         ;;
       -m|--pkg-manifest)
          case "$2" in
 	    "")
