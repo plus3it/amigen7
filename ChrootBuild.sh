@@ -26,6 +26,7 @@ then
 fi
 DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
+MANIFESTFILE=""
 YCM="/bin/yum-config-manager"
 
 function PrepChroot() {
@@ -84,7 +85,7 @@ function PrepChroot() {
 ######################
 
 # See if we'e passed any valid flags
-OPTIONBUFR=$(getopt -o r:b:e: --long repouri:bonusrepos:extras: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o r:b:e:m: --long repouri:bonusrepos:extras:pkg-manifest: -n "${PROGNAME}" -- "$@")
 eval set -- "${OPTIONBUFR}"
 
 while true
@@ -129,6 +130,19 @@ do
 	       ;;
 	 esac
 	 ;;
+      -m|--pkg-manifest)
+         case "$2" in
+	    "")
+	       echo "Error: option required but not specified" > /dev/stderr
+	       shift 2;
+	       exit 1
+	       ;;
+	    *)
+	       MANIFESTFILE="${1}"
+	       shift 2;
+	       ;;
+	 esac
+	 ;;
       --)
          shift
 	 break
@@ -167,7 +181,13 @@ case "${FIPSDISABLE}" in
 esac
 
 # Setup the "include" package list
-INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+
+if [[ ! -z ${MANIFESTFILE} ]] && [[ -s ${MANIFESTFILE} ]]
+then
+   INCLUDE_PKGS=($( < ${MANIFESTFILE} ))
+else
+   INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+fi
 
 # Detect if target-reposity has requisite metadata
 if [[ ${INCLUDE_PKGS[*]} == "" ]]
