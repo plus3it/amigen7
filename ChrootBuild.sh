@@ -138,7 +138,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       MANIFESTFILE="${1}"
+	       MANIFESTFILE="${2}"
 	       shift 2;
 	       ;;
 	 esac
@@ -184,8 +184,10 @@ esac
 
 if [[ ! -z ${MANIFESTFILE} ]] && [[ -s ${MANIFESTFILE} ]]
 then
-   INCLUDE_PKGS=($( < ${MANIFESTFILE} ))
+   echo "Selecting packages from ${MANIFESTFILE}..."
+   INCLUDE_PKGS=($( < "${MANIFESTFILE}" ))
 else
+   echo "Installing default package (@Core) from repo group-list..."
    INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
 fi
 
