@@ -27,6 +27,7 @@ fi
 DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 MANIFESTFILE=""
+RPMGRP="core"
 YCM="/bin/yum-config-manager"
 
 # Print out a basic usage message
@@ -38,6 +39,7 @@ function UsageMsg {
       echo "  Options:"
       printf "\t-b <REPOS_TO_ACTIVATE>\n"
       printf "\t-e <EXTRA_RPMS>\n"
+      printf "\t-g <RPM_GROUP_NAME>\n"
       printf "\t-h print this message\n"
       printf "\t-m <PKG_MANIFEST_FILE>\n"
       printf "\t-r <REPO_RPM_URIs>\n"
@@ -47,6 +49,7 @@ function UsageMsg {
       printf "\t--help print this message\n"
       printf "\t--pkg-manifest <PKG_MANIFEST_FILE>\n"
       printf "\t--repouri <REPO_RPM_URIs>\n"
+      printf "\t--rpm-group <RPM_GROUP_NAME>\n"
    )
    exit 1
 }
@@ -107,7 +110,7 @@ function PrepChroot() {
 ######################
 
 # See if we'e passed any valid flags
-OPTIONBUFR=$(getopt -o r:b:e:hm: --long repouri:,bonusrepos:,extras:,help,pkg-manifest: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o r:b:e:g:hm: --long repouri:,bonusrepos:,extras:,help,pkg-manifest:,rpm-group -n "${PROGNAME}" -- "$@")
 eval set -- "${OPTIONBUFR}"
 
 while true
@@ -168,6 +171,19 @@ do
 	       ;;
 	 esac
 	 ;;
+      -g|--rpm-group)
+         case "$2" in
+	    "")
+	       echo "Error: option required but not specified" > /dev/stderr
+	       shift 2;
+	       exit 1
+	       ;;
+	    *)
+	       RPMGRP="${2}"
+	       shift 2;
+	       ;;
+	 esac
+         ;;
       --)
          shift
 	 break
@@ -213,7 +229,8 @@ then
    INCLUDE_PKGS=($( < "${MANIFESTFILE}" ))
 else
    echo "Installing default package (@Core) from repo group-list..."
-   INCLUDE_PKGS=($(yum groupinfo core 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+   # shellcheck disable=SC2086
+   INCLUDE_PKGS=($(yum groupinfo ${RPMGRP} 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
 fi
 
 # Detect if target-reposity has requisite metadata
