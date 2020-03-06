@@ -25,10 +25,14 @@ then
    )
 fi
 DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
+EXPANDED=()
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 MANIFESTFILE=""
+PKGLIST=()
 RPMGRP="core"
 YCM="/bin/yum-config-manager"
+
+export EXPANDED PKGLIST
 
 # Print out a basic usage message
 function UsageMsg {
@@ -223,14 +227,65 @@ esac
 
 # Setup the "include" package list
 
+# Use manifest file if found and non-empty
 if [[ ! -z ${MANIFESTFILE} ]] && [[ -s ${MANIFESTFILE} ]]
 then
    echo "Selecting packages from ${MANIFESTFILE}..."
    INCLUDE_PKGS=($( < "${MANIFESTFILE}" ))
+# Pull manifest data from yum repository group metadata
 else
-   echo "Installing default package (@Core) from repo group-list..."
-   # shellcheck disable=SC2086
-   INCLUDE_PKGS=($(yum groupinfo ${RPMGRP} 2>&1 | sed -n '/Mandatory/,/Optional Packages:/p' | sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//'))
+   echo "Installing default package (@${RPMGRP}) from repo group-list..."
+
+   # Simple case
+   if [[ ${RPMGRP} == core ]]
+   then
+      # shellcheck disable=SC2086
+      INCLUDE_PKGS=( $(yum groupinfo ${RPMGRP} 2>&1 | \
+         sed -n '/Mandatory/,/Optional Packages:/p' | \
+         sed -e '/^ [A-Z]/d' -e 's/^[[:space:]]*[-=+[:space:]]//' ) )
+   # Deal with super-groups
+   else
+      GROUPINFO="$( yum -q groupinfo "${RPMGRP}" 2> /dev/null )"
+
+      if [[ -n ${GROUPINFO} ]]
+      then
+         SUBGROUPS=( $( echo "${GROUPINFO}" | \
+            sed -n -e '/Mandatory Groups:/,/Optional Groups:/p' | \
+            sed -e '/:$/d' -e 's/^\s*+//' ) )
+      else
+         printf "Group '%s' is not valid\n" "${RPMGRP}"
+         exit 1
+      fi
+
+
+      # Expand sub-groups to lists of RPMs
+      if [[ -n ${SUBGROUPS[*]} ]]
+      then
+         printf "Found following sub-groups in '%s': %s\n" "${RPMGRP}" "${SUBGROUPS[*]}"
+
+         # Work around "no groups availble on fresh installs"
+         # shortcoming (per BZ #1073484)
+         yum groups mark convert
+
+         for PKGGRP in ${SUBGROUPS[*]}
+         do
+            IFS=$'\n' read -r -d '' -a EXPANDED < <( yum groupinfo "${PKGGRP}" | \
+               sed -n -e '/Description:/,/Optional Packages:/p' | \
+               sed -e '/[a-z]*:/d' -e 's/^\s*[+=-]*//' && printf '\0' )
+
+            # Expand PKGLIST array as appropriate
+            if [[ ${#PKGLIST[@]} -gt 0 ]] && [[ ${#EXPANDED[@]} -gt 0 ]]
+            then
+               PKGLIST=( "${PKGLIST[@]}" "${EXPANDED[@]}" )
+            elif [[ ${#PKGLIST[@]} -eq 0 ]] && [[ ${#EXPANDED[@]} -gt 0 ]]
+            then
+               PKGLIST=( "${EXPANDED[@]}" )
+            fi
+            EXPANDED=()
+         done
+      fi
+      INCLUDE_PKGS=( "${PKGLIST[@]}" )
+   fi
 fi
 
 # Detect if target-reposity has requisite metadata
