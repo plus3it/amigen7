@@ -6,7 +6,14 @@
 #####################################
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
-if [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
+
+if [[ $(rpm --quiet -q oraclelinux-release)$? -eq 0 ]]
+then
+   OSREPOS=(
+      ol7_latest
+      ol7_UEKR5
+   )
+elif [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
 then
    OSREPOS=(
       rhui-REGION-client-config-server-7
@@ -59,14 +66,29 @@ function UsageMsg {
 }
 
 function PrepChroot() {
-   local REPOPKGS=($(echo \
-                     "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
-                     echo "$(rpm --qf '%{name}\n' -qf \
-                            /etc/yum.repos.d/* 2>&1 | \
-                            grep -v "not owned" | sort -u)" ; \
-                     echo yum-utils
-                   ))
 
+   if [ -f "/etc/oracle-release" ]
+   then
+      # we cannot install oraclelinux-release-el7.rpm due to script dependencies to other RPMs
+      # => the strategy from CentOS/RHEL could not be used here...
+      local REPOPKGS="yum-utils"
+      
+      # setup some public-yum settings for onPremise installations
+      mkdir -p /mnt/ec2-root/etc/yum/vars
+      touch /mnt/ec2-root/etc/yum/vars/ociregion
+
+      mkdir -p /mnt/ec2-root/etc/yum.repos.d
+      # copy repositoryfiles manually
+      cp /etc/yum.repos.d/*ol7.repo /mnt/ec2-root/etc/yum.repos.d
+   else
+      local REPOPKGS=($(echo \
+                        "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
+                        echo "$(rpm --qf '%{name}\n' -qf \
+                              /etc/yum.repos.d/* 2>&1 | \
+                              grep -v "not owned" | sort -u)" ; \
+                        echo yum-utils
+                     ))
+   fi
    # Enable DNS resolution in the chroot
    if [[ ! -e ${CHROOT}/etc/resolv.conf ]]
    then
