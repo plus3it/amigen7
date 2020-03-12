@@ -105,6 +105,8 @@ function PrepChroot() {
       install -d -m 0755 "${CHROOT}/etc/rc.d/init.d"
    fi
 
+   # cleanup RPMs from previous runs
+   rm -f /tmp/*.rpm
    yumdownloader --destdir=/tmp "${REPOPKGS[@]}"
    rpm --root "${CHROOT}" --initdb
    rpm --root "${CHROOT}" -ivh --nodeps /tmp/*.rpm
