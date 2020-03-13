@@ -106,19 +106,42 @@ enable_services()
    done
 }
 
+get_awstools_filenames()
+{
+   if [ "${AWSTOOLSRPM:-""}" = "" ]
+   then
+      # shellcheck disable=2046
+      echo $(ls "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm)
+   else
+      rpmfiles=""
+      for rpmfile in $(echo "$AWSTOOLSRPM")
+      do
+         rpmfiles="${rpmfiles} "$(ls "${SCRIPTROOT}/AWSpkgs/${rpmfile}"*.el7.*.rpm)
+      done
+      echo "${rpmfiles}"
+   fi
+}
+
 install_awstools()
 {
    # Depending on RPMs dependencies, this may fail if a repo is
    # missing (e.g. EPEL). Will also fail if no RPMs are present
    # in the search directory.
-   { STDERR=$(yum install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
-   { STDERR=$(yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 2>&1 1>&$out); } {out}>&1 || echo "$STDERR" | grep "Error: Nothing to do"
-   yum --installroot="${CHROOT}" install -y "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm \
-      || exit $?
+   # use yum info .. to check and show details for installed RPMs.
+   rpmfiles=$(get_awstools_filenames)
+   if [ "${rpmfiles}" = "" ]
+   then
+      echo "No Installation of addional Amazon RPMs"
+   else
+      yum info epel-release >/dev/null 2>&1 || yum install -y "${EPELRELEASE}" 
+      (yum --installroot="${CHROOT}" info epel-release >/dev/null 2>&1) ||  yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 
+      # shellcheck disable=2086
+      yum --installroot="${CHROOT}" install -e 0 -y ${rpmfiles} \
+         || exit $?
 
    enable_services
+   fi
 }
-
 
 check_AMZNRPMS
 enable_rhel_optional
