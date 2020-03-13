@@ -97,11 +97,13 @@ enable_services()
    # Need to force systemd services to be enabled in resultant AMI
    for SVC in "${SYSTEMDSVCS[@]}"
    do
-      printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
-      chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
-      ( echo "FAILED" ; exit 1 )
+      if [ -f "${CHROOT}/etc/systemd/system/$SVC" ]
+      then
+         printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
+         chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
+         ( echo "FAILED" ; exit 1 )
+      fi
    done
-
 }
 
 install_awstools()
