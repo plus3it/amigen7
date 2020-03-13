@@ -1,5 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC2086,SC2207,SC2236,SC2015
 #
 # Script to automate and standardize installation of AWScli tools
 #
@@ -11,6 +10,7 @@
 # package, or it will default to one publicly available.
 #
 ############################################################
+# shellcheck disable=SC2086
 SCRIPTROOT="$(dirname ${0})"
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 BUNDLE="awscli-bundle.zip"
@@ -100,6 +100,7 @@ enable_services()
       if [ -f "${CHROOT}/etc/systemd/system/$SVC" ]
       then
          printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
+         # shellcheck disable=SC2015
          chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
          ( echo "FAILED" ; exit 1 )
       fi
@@ -110,11 +111,10 @@ get_awstools_filenames()
 {
    if [ "${AWSTOOLSRPM:-""}" = "" ]
    then
-      # shellcheck disable=2046
-      echo $(ls "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm)
+      ls "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm
    else
       rpmfiles=""
-      for rpmfile in $(echo "$AWSTOOLSRPM")
+      for rpmfile in ${AWSTOOLSRPM}
       do
          rpmfiles="${rpmfiles} "$(ls "${SCRIPTROOT}/AWSpkgs/${rpmfile}"*.el7.*.rpm)
       done
