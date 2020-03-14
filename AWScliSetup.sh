@@ -134,8 +134,9 @@ install_awstools()
    then
       echo "No Installation of addional Amazon RPMs"
    else
-      yum info epel-release >/dev/null 2>&1 || yum install -y "${EPELRELEASE}" 
-      (yum --installroot="${CHROOT}" info epel-release >/dev/null 2>&1) ||  yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 
+      epelpkgname=$(rpm -qp --qf "%{NAME}\n" "${EPELRELEASE}" )
+      yum info "$epelpkgname" >/dev/null 2>&1 || yum install -y "${EPELRELEASE}" 
+      (yum --installroot="${CHROOT}" info "$epelpkgname" >/dev/null 2>&1) ||  yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 
       # shellcheck disable=2086
       yum --installroot="${CHROOT}" install -e 0 -y ${rpmfiles} \
          || exit $?
