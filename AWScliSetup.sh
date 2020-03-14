@@ -28,17 +28,18 @@ SYSTEMDSVCS=(
 check_AMZNRPMS()
 {
    # Make sure the AMZN.Linux packages are present
-      AMZNRPMS=($( stat -c '%n' "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm))
-      if [[ ${#AMZNRPMS[@]} -eq 0 ]]
-      then
-         (
-         echo "AMZN.Linux packages not found in ${SCRIPTROOT}/AWSpkgs"
-         echo "Please download missing RPMs before proceeding."
-         echo "Note: GetAmznLx.sh may be used to do this for you."
-         echo "Aborting..."
-         ) > /dev/stderr
-         exit 1
-      fi
+   # shellcheck disable=SC2207
+   AMZNRPMS=($( stat -c '%n' "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm))
+   if [[ ${#AMZNRPMS[@]} -eq 0 ]]
+   then
+      (
+      echo "AMZN.Linux packages not found in ${SCRIPTROOT}/AWSpkgs"
+      echo "Please download missing RPMs before proceeding."
+      echo "Note: GetAmznLx.sh may be used to do this for you."
+      echo "Aborting..."
+      ) > /dev/stderr
+      exit 1
+   fi
 }
 
 enable_rhel_optional()
@@ -51,7 +52,7 @@ enable_rhel_optional()
    fi
 
    # Enabled requested repos in chroot() environment
-   if [[ ! -z ${PRIVREPOS+xxx} ]]
+   if [[ -n ${PRIVREPOS+xxx} ]]
    then
       chroot "${CHROOT}" yum-config-manager --enable "${PRIVREPOS}"
    fi
