@@ -7,30 +7,36 @@
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 
-if [[ $(rpm --quiet -q oraclelinux-release)$? -eq 0 ]]
-then
-   OSREPOS=(
-      ol7_latest
-      ol7_UEKR5
-   )
-elif [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
-then
-   OSREPOS=(
-      rhui-REGION-client-config-server-7
-      rhui-REGION-rhel-server-releases
-      rhui-REGION-rhel-server-rh-common
-      rhui-REGION-rhel-server-optional
-      rhui-REGION-rhel-server-extras
-   )
-elif [[ $(rpm --quiet -q centos-release)$? -eq 0 ]]
-then
-   OSREPOS=(
-      os
-      base
-      updates
-      extras
-   )
-fi
+case $( rpm -qf /etc/os-release --qf '%{name}' ) in
+   centos-release)
+      OSREPOS=(
+         os
+         base
+         updates
+         extras
+      )
+      ;;
+   oraclelinux-release)
+      OSREPOS=(
+         ol7_latest
+         ol7_UEKR5
+      )
+      ;;
+   redhat-release-server)
+      OSREPOS=(
+         rhui-REGION-client-config-server-7
+         rhui-REGION-rhel-server-releases
+         rhui-REGION-rhel-server-rh-common
+         rhui-REGION-rhel-server-optional
+         rhui-REGION-rhel-server-extras
+      )
+      ;;
+   *)
+      echo "Unknown OS. Aborting" >&2
+      exit 1
+      ;;
+esac
+
 DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
 EXPANDED=()
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
@@ -72,7 +78,7 @@ function PrepChroot() {
       # we cannot install oraclelinux-release-el7.rpm due to script dependencies to other RPMs
       # => the strategy from CentOS/RHEL could not be used here...
       local REPOPKGS="yum-utils"
-      
+
       # setup some public-yum settings for onPremise installations
       mkdir -p /mnt/ec2-root/etc/yum/vars
       touch /mnt/ec2-root/etc/yum/vars/ociregion
