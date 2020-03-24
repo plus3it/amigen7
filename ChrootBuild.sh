@@ -80,12 +80,12 @@ function PrepChroot() {
       local REPOPKGS="yum-utils"
 
       # setup some public-yum settings for onPremise installations
-      mkdir -p /mnt/ec2-root/etc/yum/vars
-      touch /mnt/ec2-root/etc/yum/vars/ociregion
+      mkdir -p "${CHROOT}/etc/yum/vars"
+      touch "${CHROOT}/etc/yum/vars/ociregion"
 
-      mkdir -p /mnt/ec2-root/etc/yum.repos.d
+      mkdir -p "${CHROOT}/etc/yum.repos.d"
       # copy repositoryfiles manually
-      cp /etc/yum.repos.d/*ol7.repo /mnt/ec2-root/etc/yum.repos.d
+      cp /etc/yum.repos.d/*ol7.repo "${CHROOT}/etc/yum.repos.d"
    else
       local REPOPKGS=($(echo \
                         "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
