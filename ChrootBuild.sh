@@ -6,24 +6,37 @@
 #####################################
 PROGNAME=$(basename "$0")
 CHROOT="${CHROOT:-/mnt/ec2-root}"
-if [[ $(rpm --quiet -q redhat-release-server)$? -eq 0 ]]
-then
-   OSREPOS=(
-      rhui-REGION-client-config-server-7
-      rhui-REGION-rhel-server-releases
-      rhui-REGION-rhel-server-rh-common
-      rhui-REGION-rhel-server-optional
-      rhui-REGION-rhel-server-extras
-   )
-elif [[ $(rpm --quiet -q centos-release)$? -eq 0 ]]
-then
-   OSREPOS=(
-      os
-      base
-      updates
-      extras
-   )
-fi
+
+case $( rpm -qf /etc/os-release --qf '%{name}' ) in
+   centos-release)
+      OSREPOS=(
+         os
+         base
+         updates
+         extras
+      )
+      ;;
+   oraclelinux-release)
+      OSREPOS=(
+         ol7_latest
+         ol7_UEKR5
+      )
+      ;;
+   redhat-release-server)
+      OSREPOS=(
+         rhui-REGION-client-config-server-7
+         rhui-REGION-rhel-server-releases
+         rhui-REGION-rhel-server-rh-common
+         rhui-REGION-rhel-server-optional
+         rhui-REGION-rhel-server-extras
+      )
+      ;;
+   *)
+      echo "Unknown OS. Aborting" >&2
+      exit 1
+      ;;
+esac
+
 DEFAULTREPOS=$(printf ",%s" "${OSREPOS[@]}" | sed 's/^,//')
 EXPANDED=()
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
@@ -59,14 +72,29 @@ function UsageMsg {
 }
 
 function PrepChroot() {
-   local REPOPKGS=($(echo \
-                     "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
-                     echo "$(rpm --qf '%{name}\n' -qf \
-                            /etc/yum.repos.d/* 2>&1 | \
-                            grep -v "not owned" | sort -u)" ; \
-                     echo yum-utils
-                   ))
 
+   if [ -f "/etc/oracle-release" ]
+   then
+      # we cannot install oraclelinux-release-el7.rpm due to script dependencies to other RPMs
+      # => the strategy from CentOS/RHEL could not be used here...
+      local REPOPKGS="yum-utils"
+
+      # setup some public-yum settings for onPremise installations
+      mkdir -p "${CHROOT}/etc/yum/vars"
+      touch "${CHROOT}/etc/yum/vars/ociregion"
+
+      mkdir -p "${CHROOT}/etc/yum.repos.d"
+      # copy repositoryfiles manually
+      cp /etc/yum.repos.d/*ol7.repo "${CHROOT}/etc/yum.repos.d"
+   else
+      local REPOPKGS=($(echo \
+                        "$(rpm --qf '%{name}\n' -qf /etc/redhat-release)" ; \
+                        echo "$(rpm --qf '%{name}\n' -qf \
+                              /etc/yum.repos.d/* 2>&1 | \
+                              grep -v "not owned" | sort -u)" ; \
+                        echo yum-utils
+                     ))
+   fi
    # Enable DNS resolution in the chroot
    if [[ ! -e ${CHROOT}/etc/resolv.conf ]]
    then
@@ -83,6 +111,8 @@ function PrepChroot() {
       install -d -m 0755 "${CHROOT}/etc/rc.d/init.d"
    fi
 
+   # cleanup RPMs from previous runs
+   rm -f /tmp/*.rpm
    yumdownloader --destdir=/tmp "${REPOPKGS[@]}"
    rpm --root "${CHROOT}" --initdb
    rpm --root "${CHROOT}" -ivh --nodeps /tmp/*.rpm
