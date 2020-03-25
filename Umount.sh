@@ -7,7 +7,7 @@ CHROOT="${CHROOT:-/mnt/ec2-root}"
 
 while read -r BLK
 do
-   if [[ ${DEBUG} == true ]]
+   if [[ ${DEBUG:-} == true ]]
    then
       echo "umount: $BLK"
    fi
