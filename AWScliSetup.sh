@@ -1,4 +1,5 @@
 #!/bin/bash
+# shellcheck disable=SC2015
 #
 # Script to automate and standardize installation of AWScli tools
 #
@@ -10,8 +11,7 @@
 # package, or it will default to one publicly available.
 #
 ############################################################
-# shellcheck disable=SC2086
-SCRIPTROOT="$(dirname ${0})"
+SCRIPTROOT="$( dirname "${0}" )"
 CHROOT="${CHROOT:-/mnt/ec2-root}"
 BUNDLE="awscli-bundle.zip"
 ZIPSRC="${1:-https://s3.amazonaws.com/aws-cli/awscli-bundle.zip}"
@@ -28,8 +28,7 @@ SYSTEMDSVCS=(
 check_AMZNRPMS()
 {
    # Make sure the AMZN.Linux packages are present
-   # shellcheck disable=SC2207
-   AMZNRPMS=($( stat -c '%n' "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm))
+   mapfile -t AMZNRPMS < <( stat -c '%n' "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm )
    if [[ ${#AMZNRPMS[@]} -eq 0 ]]
    then
       (
@@ -46,7 +45,7 @@ enable_rhel_optional()
 {
    # Enable the RHEL "optional" repo where appropriate
    OPTIONREPO=$(yum repolist all | grep rhel-server-optional || true)
-   if [[ ${OPTIONREPO} != "" ]]
+   if [[ -n ${OPTIONREPO} ]]
    then
       chroot "${CHROOT}" yum-config-manager --enable "${OPTIONREPO/\/*/}"
    fi
@@ -98,19 +97,15 @@ enable_services()
    # Need to force systemd services to be enabled in resultant AMI
    for SVC in "${SYSTEMDSVCS[@]}"
    do
-      if [ -f "${CHROOT}/etc/systemd/system/$SVC" ]
-      then
-         printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
-         # shellcheck disable=SC2015
-         chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
-         ( echo "FAILED" ; exit 1 )
-      fi
+      printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOT}"
+      chroot "${CHROOT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
+        ( echo "FAILED" ; exit 1 )
    done
 }
 
 get_awstools_filenames()
 {
-   if [ "${AWSTOOLSRPM:-""}" = "" ]
+   if [[ -z ${AWSTOOLSRPM} ]]
    then
       ls "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm
    else
@@ -130,16 +125,16 @@ install_awstools()
    # in the search directory.
    # use yum info .. to check and show details for installed RPMs.
    rpmfiles=$(get_awstools_filenames)
-   if [ "${rpmfiles}" = "" ]
+   if [[ -z ${rpmfiles} ]]
    then
       echo "No Installation of addional Amazon RPMs"
    else
-      epelpkgname=$(rpm -qp --qf "%{NAME}\n" "${EPELRELEASE}" )
+      epelpkgname=$( rpm -qp --qf "%{NAME}\n" "${EPELRELEASE}" )
       yum info "$epelpkgname" >/dev/null 2>&1 || yum install -y "${EPELRELEASE}" 
-      (yum --installroot="${CHROOT}" info "$epelpkgname" >/dev/null 2>&1) ||  yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 
+      ( yum --installroot="${CHROOT}" info "$epelpkgname" >/dev/null 2>&1 ) || \
+        yum --installroot="${CHROOT}" install -y "${EPELRELEASE}" 
       # shellcheck disable=2086
-      yum --installroot="${CHROOT}" install -e 0 -y ${rpmfiles} \
-         || exit $?
+      yum --installroot="${CHROOT}" install -e 0 -y ${rpmfiles} || exit $?
 
    enable_services
    fi
