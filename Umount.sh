@@ -1,10 +1,15 @@
-#!/bin/sh
+#!/bin/bash
 #
 # Script to clean up all devices mounted under $CHROOT
 #
 #################################################################
+CHROOT="${CHROOT:-/mnt/ec2-root}"
 
-for BLK in $(mount | grep "${CHROOT}" | awk '{ print $3 }' | sort -r)
+while read -r BLK
 do
-   umount "${BLK}"
-done
+   if [[ ${DEBUG} == true ]]
+   then
+      echo "umount: $BLK"
+   fi
+   umount "$BLK"
+done < <( cut -d " " -f 3 <( mount )  | grep "${CHROOT}" | sort -r )
