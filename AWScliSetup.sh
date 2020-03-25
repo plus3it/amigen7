@@ -105,7 +105,7 @@ enable_services()
 
 get_awstools_filenames()
 {
-   if [[ -z ${AWSTOOLSRPM} ]]
+   if [[ -z ${AWSTOOLSRPM:-} ]]
    then
       ls "${SCRIPTROOT}"/AWSpkgs/*.el7.*.rpm
    else
