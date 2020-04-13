@@ -394,6 +394,7 @@ EXCLUDE_PKGS=(
     -iwl6000g2b-firmware
     -iwl6050-firmware
     -iwl7260-firmware
+    -iwl7265-firmware
     -libertas-sd8686-firmware
     -libertas-sd8787-firmware
     -libertas-usb8388-firmware
