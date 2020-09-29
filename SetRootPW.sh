@@ -89,6 +89,24 @@ function AllowRootSsh {
    fi
 }
 
+function EnableProvUser {
+
+   # Create maintenance user
+   printf 'Creating %s in chroot [%s]... ' "${MAINTUSER}" "${CHROOT}"
+   chroot "${CHROOT}" useradd -c "Maintenance User Account" -m \
+     -s /bin/bash "${MAINTUSER}" && echo "Success!" || \
+     err_exit "Failed creating ${MAINTUSER}" 1
+
+   # Give maintenance user privileges
+   printf 'Adding %s to sudoers... ' "${MAINTUSER}"
+   printf '%s\tALL=(ALL)\tNOPASSWD:ALL\n' "${MAINTUSER}" > \
+     "${CHROOT}/etc/sudoers.d/user_${MAINTUSER}" && echo "Success!" || \
+     err_exit "Failed adding ${MAINTUSER} to sudoers" 1
+
+   # Set password
+   SetPassString
+}
+
 
 
 ######################
@@ -149,12 +167,16 @@ done
 if [[ ${ROOTPWSTRING} == UNDEF ]]
 then
    err_exit "No password string passed to script. ABORTING!" 1
-else
-   SetPassString
 fi
 
-# Update sshd_config as necessary
+# Configure for direct-root or sudo-to-root
 if [[ ${MAINTUSER} == root ]]
 then
+   # Set root's password
+   SetPassString
+
+   # Set up SSH to allow direct-root
    AllowRootSsh
+else
+   EnableProvUser
 fi
