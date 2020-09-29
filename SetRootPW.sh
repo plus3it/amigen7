@@ -63,7 +63,7 @@ function UsageMsg {
 }
 
 function SetPassString {
-   printf "Setting password for %... " "${MAINTUSER}"
+   printf "Setting password for %s... " "${MAINTUSER}"
    echo "${ROOTPWSTRING}" | chroot "${CHROOT}" /bin/passwd --stdin "${MAINTUSER}" && \
      echo "Success" || err_exit "Failed setting password for ${MAINTUSER}" 1
 
@@ -73,18 +73,18 @@ function AllowRootSsh {
    local SSHDCFGFILE
    local CFGITEM
 
-   SSHDCFGFILE="/etc/ssh/sshd_config"
+   SSHDCFGFILE="${CHROOT}/etc/ssh/sshd_config"
    CFGITEM="PermitRootLogin"
 
    printf "Allow remote-login for root... "
    if [[ $( grep -q "^${CFGITEM}" "${SSHDCFGFILE}" )$? -eq 0 ]]
    then
-      sed "/^${CFGITEM}/s/[ 	][ 	]*.*$/ yes/" "${SSHDCFGFILE}" && \
-        err_exit "Change ${CFGITEM} value in ${SSHDCFGFILE}" 0 || \
+      sed -i "/^${CFGITEM}/s/[ 	][ 	]*.*$/ yes/" "${SSHDCFGFILE}" && \
+        echo "Change ${CFGITEM} value in ${SSHDCFGFILE}" 0 || \
         err_exit "Failed changing ${CFGITEM} value in ${SSHDCFGFILE}" 1
    else
       echo "PermitRootLogin yes" > "${SSHDCFGFILE}" && \
-        err_exit "Added ${CFGITEM} to ${SSHDCFGFILE}" 0 || \
+        echo "Added ${CFGITEM} to ${SSHDCFGFILE}" 0 || \
         err_exit "Failed adding ${CFGITEM} to ${SSHDCFGFILE}" 1
    fi
 }
