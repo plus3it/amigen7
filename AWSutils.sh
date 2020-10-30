@@ -13,6 +13,13 @@ DEBUG="${DEBUG:-UNDEF}"
 SSMAGENT="${SSMAGENT:-UNDEF}"
 UTILSDIR="${UTILSDIR:-UNDEF}"
 
+SYSTEMDSVCS=(
+    autotune.service
+    amazon-ssm-agent.service
+    hibinit-agent.service
+    ec2-instance-connect.service
+)
+
 # Make interactive-execution more-verbose unless explicitly told not to
 if [[ $( tty -s ) -eq 0 ]] && [[ ${DEBUG} == "UNDEF" ]]
 then
@@ -91,12 +98,83 @@ function EnsurePy3 {
    fi
 }
 
+# Make sure the amzn linux packages are present
+function check_amzn_rpms()
+{
+   mapfile -t AMZNRPMS < <( stat -c '%n' "${UTILSDIR}"/*.el7.*.rpm )
+   if [[ ${#AMZNRPMS[@]} -eq 0 ]]
+   then
+      (
+      echo "AMZN.Linux packages not found in ${UTILSDIR}"
+      echo "Please download missing RPMs before proceeding."
+      echo "Note: GetAmznLx.sh may be used to do this for you."
+      echo "Aborting..."
+      ) > /dev/stderr
+      exit 1
+   fi
+}
+
+# Enable the RHEL "optional" repo where appropriate
+function enable_rhel_optional_repo()
+{
+    OPTIONREPO=$(yum repolist all | grep rhel-server-optional || true)
+    if [[ -n ${OPTIONREPO} ]]
+    then
+        chroot "${CHROOTMNT}" yum-config-manager --enable "${OPTIONREPO/\/*/}"
+    fi
+}
+
+# Force systemd services to be enabled in resultant AMI
+function enable_services()
+{
+    for SVC in "${SYSTEMDSVCS[@]}"
+    do
+        printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOTMNT}"
+        chroot "${CHROOTMNT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
+            ( echo "FAILED" ; exit 1 )
+    done
+}
+
+# Get list of rpm filenames
+function get_awstools_filenames()
+{
+    if [[ -z ${AWSTOOLSRPM:-} ]]
+    then
+        ls "${UTILSDIR}"/*.el7.*.rpm
+    else
+        rpmfiles=""
+        for rpmfile in ${AWSTOOLSRPM}
+        do
+            rpmfiles="${rpmfiles} "$(ls "${UTILSDIR}/${rpmfile}"*.el7.*.rpm)
+        done
+        echo "${rpmfiles}"
+    fi
+}
+
+# Install aws utils rpms
+function install_aws_utils()
+{
+    # Depending on RPMs dependencies, this may fail if a repo is
+    # missing (e.g. EPEL). Will also fail if no RPMs are present
+    # in the search directory.
+    # use yum info .. to check and show details for installed RPMs.
+    rpmfiles=$(get_awstools_filenames)
+    if [[ -z ${rpmfiles} ]]
+    then
+        echo "No Installation of additional Amazon RPMs"
+    else
+        # shellcheck disable=2086
+        yum --installroot="${CHROOTMNT}" install -e 0 -y ${rpmfiles} || exit $?
+        enable_services
+    fi
+}
+
 # Install AWS CLI version 1.x
 function InstallCLIv1 {
    local INSTALLDIR
    local BINDIR
 
-   INSTALLDIR="/opt/aws/cli"
+   INSTALLDIR="/usr/local/aws-cli/v1"
    BINDIR="/usr/local/bin"
 
    if [[ ${CLIV1SOURCE} == "UNDEF" ]]
@@ -120,13 +198,13 @@ function InstallCLIv1 {
 
       err_exit "Installing AWS CLIv1..." NONE
       chroot "${CHROOTMNT}" /bin/bash -c "(
-            /tmp/awscli-bundle/install -i "${INSTALLDIR}" -b "${BINDIR}/aws1"
+            /tmp/awscli-bundle/install -i "${INSTALLDIR}" -b "${BINDIR}/aws"
          )" || \
         err_exit "Failed installing AWS CLIv1"
 
-      err_exit "Creating awscliv1 symlink ${BINDIR}/aws..." NONE
-      chroot "${CHROOTMNT}" ln -sf "${BINDIR}/aws1" "${BINDIR}/aws" || \
-        err_exit "Failed creating ${BINDIR}/aws"
+      err_exit "Creating AWS CLIv1 symlink ${BINDIR}/aws1..." NONE
+      chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/bin/aws" "${BINDIR}/aws1" || \
+        err_exit "Failed creating ${BINDIR}/aws1"
 
       err_exit "Cleaning up install files..." NONE
       rm -rf "${CHROOTMNT}/tmp/awscli-bundle.zip" \
@@ -147,7 +225,7 @@ function InstallCLIv2 {
    local INSTALLDIR
    local BINDIR
 
-   INSTALLDIR="/opt/aws/cli"
+   INSTALLDIR="/usr/local/aws-cli"  # installer appends v2/current
    BINDIR="/usr/local/bin"
 
    if [[ ${CLIV2SOURCE} == "UNDEF" ]]
@@ -172,8 +250,8 @@ function InstallCLIv2 {
          )" || \
         err_exit "Failed installing AWS CLIv2"
 
-      err_exit "Creating awscliv2 symlink ${BINDIR}/aws2..." NONE
-      chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/bin/aws" "${BINDIR}/aws2" || \
+      err_exit "Creating AWS CLIv2 symlink ${BINDIR}/aws2..." NONE
+      chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/v2/current/bin/aws" "${BINDIR}/aws2" || \
         err_exit "Failed creating ${BINDIR}/aws2"
 
       err_exit "Cleaning up install files..." NONE
@@ -186,7 +264,9 @@ function InstallCLIv2 {
 
 # Install AWS utils from "directory"
 function InstallFromDir {
-   true
+    check_amzn_rpms
+    enable_rhel_optional_repo
+    install_aws_utils
 }
 
 # Install AWS InstanceConnect
