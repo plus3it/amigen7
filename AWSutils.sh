@@ -53,8 +53,8 @@ function UsageMsg {
    (
       echo "Usage: ${0} [GNU long option] [option] ..."
       echo "  Options:"
-      printf '\t%-4s%s\n' '-C' 'Where to get AWS CLIv1 (Installs to /usr/local/bin)'
-      printf '\t%-4s%s\n' '-c' 'Where to get AWS CLIv2 (Installs to /usr/bin)'
+      printf '\t%-4s%s\n' '-C' 'Where to get AWS CLIv1 (Installs to /usr/local/bin/aws1)'
+      printf '\t%-4s%s\n' '-c' 'Where to get AWS CLIv2 (Installs to /usr/local/bin/aws2)'
       printf '\t%-4s%s\n' '-d' 'Directory containing installable utility-RPMs'
       printf '\t%-4s%s\n' '-h' 'Print this message'
       printf '\t%-4s%s\n' '-i' 'Where to get AWS InstanceConnect (RPM or git URL)'
@@ -94,8 +94,10 @@ function EnsurePy3 {
 # Install AWS CLI version 1.x
 function InstallCLIv1 {
    local INSTALLDIR
+   local BINDIR
 
-   INSTALLDIR="opt/aws/cli"
+   INSTALLDIR="/opt/aws/cli"
+   BINDIR="/usr/local/bin"
 
    if [[ ${CLIV1SOURCE} == "UNDEF" ]]
    then
@@ -118,9 +120,13 @@ function InstallCLIv1 {
 
       err_exit "Installing AWS CLIv1..." NONE
       chroot "${CHROOTMNT}" /bin/bash -c "(
-            /tmp/awscli-bundle/install -i "/${INSTALLDIR}" -b /usr/local/bin/aws
+            /tmp/awscli-bundle/install -i "${INSTALLDIR}" -b "${BINDIR}/aws1"
          )" || \
         err_exit "Failed installing AWS CLIv1"
+
+      err_exit "Creating awscliv1 symlink ${BINDIR}/aws..." NONE
+      chroot "${CHROOTMNT}" ln -sf "${BINDIR}/aws1" "${BINDIR}/aws" || \
+        err_exit "Failed creating ${BINDIR}/aws"
 
       err_exit "Cleaning up install files..." NONE
       rm -rf "${CHROOTMNT}/tmp/awscli-bundle.zip" \
@@ -139,8 +145,10 @@ function InstallCLIv1 {
 # Install AWS CLI version 2.x
 function InstallCLIv2 {
    local INSTALLDIR
+   local BINDIR
 
-   INSTALLDIR="opt/aws/cli"
+   INSTALLDIR="/opt/aws/cli"
+   BINDIR="/usr/local/bin"
 
    if [[ ${CLIV2SOURCE} == "UNDEF" ]]
    then
@@ -160,9 +168,13 @@ function InstallCLIv2 {
 
       err_exit "Installing AWS CLIv2..." NONE
       chroot "${CHROOTMNT}" /bin/bash -c "(
-            /tmp/aws/install -i "/${INSTALLDIR}" -b /usr/bin
+            /tmp/aws/install -i "${INSTALLDIR}" -b "${BINDIR}"
          )" || \
         err_exit "Failed installing AWS CLIv2"
+
+      err_exit "Creating awscliv2 symlink ${BINDIR}/aws2..." NONE
+      chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/bin/aws" "${BINDIR}/aws2" || \
+        err_exit "Failed creating ${BINDIR}/aws2"
 
       err_exit "Cleaning up install files..." NONE
       rm -rf "${CHROOTMNT}/tmp/awscli-exe.zip" \
