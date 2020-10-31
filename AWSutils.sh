@@ -130,8 +130,8 @@ function enable_services()
     for SVC in "${SYSTEMDSVCS[@]}"
     do
         printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOTMNT}"
-        chroot "${CHROOTMNT}" /usr/bin/systemctl enable "${SVC}" && echo "Success" || \
-            ( echo "FAILED" ; exit 1 )
+        chroot "${CHROOTMNT}" /usr/bin/systemctl enable "${SVC}" || err_exit "FAILED"
+        echo "SUCCESS"
     done
 }
 
@@ -197,10 +197,8 @@ function InstallCLIv1 {
         err_exit "Failed dearchiving awscli-bundle.zip"
 
       err_exit "Installing AWS CLIv1..." NONE
-      chroot "${CHROOTMNT}" /bin/bash -c "(
-            /tmp/awscli-bundle/install -i "${INSTALLDIR}" -b "${BINDIR}/aws"
-         )" || \
-        err_exit "Failed installing AWS CLIv1"
+      chroot "${CHROOTMNT}" /bin/bash -c "/tmp/awscli-bundle/install -i '${INSTALLDIR}' -b '${BINDIR}/aws'" || \
+         err_exit "Failed installing AWS CLIv1"
 
       err_exit "Creating AWS CLIv1 symlink ${BINDIR}/aws1..." NONE
       chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/bin/aws" "${BINDIR}/aws1" || \
@@ -245,10 +243,8 @@ function InstallCLIv2 {
         err_exit "Failed dearchiving awscli-exe.zip"
 
       err_exit "Installing AWS CLIv2..." NONE
-      chroot "${CHROOTMNT}" /bin/bash -c "(
-            /tmp/aws/install -i "${INSTALLDIR}" -b "${BINDIR}"
-         )" || \
-        err_exit "Failed installing AWS CLIv2"
+      chroot "${CHROOTMNT}" /bin/bash -c "/tmp/aws/install -i '${INSTALLDIR}' -b '${BINDIR}'" || \
+         err_exit "Failed installing AWS CLIv2"
 
       err_exit "Creating AWS CLIv2 symlink ${BINDIR}/aws2..." NONE
       chroot "${CHROOTMNT}" ln -sf "${INSTALLDIR}/v2/current/bin/aws" "${BINDIR}/aws2" || \
