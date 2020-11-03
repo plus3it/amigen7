@@ -79,13 +79,13 @@ function AllowRootSsh {
    printf "Allow remote-login for root... "
    if [[ $( grep -q "^${CFGITEM}" "${SSHDCFGFILE}" )$? -eq 0 ]]
    then
-      sed -i "/^${CFGITEM}/s/[ 	][ 	]*.*$/ yes/" "${SSHDCFGFILE}" && \
-        echo "Change ${CFGITEM} value in ${SSHDCFGFILE}" 0 || \
+      sed -i "/^${CFGITEM}/s/[ 	][ 	]*.*$/ yes/" "${SSHDCFGFILE}" || \
         err_exit "Failed changing ${CFGITEM} value in ${SSHDCFGFILE}" 1
+      echo "Change ${CFGITEM} value in ${SSHDCFGFILE}"
    else
-      echo "PermitRootLogin yes" > "${SSHDCFGFILE}" && \
-        echo "Added ${CFGITEM} to ${SSHDCFGFILE}" 0 || \
+      echo "PermitRootLogin yes" > "${SSHDCFGFILE}" || \
         err_exit "Failed adding ${CFGITEM} to ${SSHDCFGFILE}" 1
+      echo "Added ${CFGITEM} to ${SSHDCFGFILE}"
    fi
 }
 
