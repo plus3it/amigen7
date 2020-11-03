@@ -63,11 +63,27 @@ function UsageMsg {
 }
 
 function SetPassString {
+   local PROTECTPWLOGGING
+
+   # Suppress trace-logging (if tracing is set)
+   if [[ $- =~ "x" ]]
+   then
+      PROTECTPWLOGGING=TRUE
+      set +x
+   fi
+
+   # Set password for the selected user 
    printf "Setting password for %s... " "${MAINTUSER}"
    echo "${ROOTPWSTRING}" | chroot "${CHROOT}" /bin/passwd --stdin "${MAINTUSER}" || \
       err_exit "Failed setting password for ${MAINTUSER}" 1
    echo "Success"
      echo "Success" || err_exit "Failed setting password for ${MAINTUSER}" 1
+
+   # Probably superfluous w/in a function...
+   if [[ ${PROTECTPWLOGGING:-} == "TRUE" ]]
+   then
+      set -x
+   fi
 
 }
 
