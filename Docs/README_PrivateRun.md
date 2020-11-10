@@ -24,7 +24,7 @@ Optionally, run:
 ~~~
       ./SetRootPW.sh <PASSWORD_STRING>; \
 ~~~
-If setting the root user's password is desired. This will typically be used in non-cloud environments (e.g., VMware vSphers)
+If setting the root user's password is desired. This will typically be used in non-cloud environments (e.g., VMware vSphere)
 ~~~
       ./PreRelabel.sh	 ; \
       ./Umount.sh
