@@ -1,7 +1,4 @@
 #!/bin/bash
-# set -euo pipefail
-#
-# shellcheck disable=SC2015
 #
 # Simple script to enable maintenance-login before sealing up the template
 #
@@ -77,7 +74,6 @@ function SetPassString {
    echo "${ROOTPWSTRING}" | chroot "${CHROOT}" /bin/passwd --stdin "${MAINTUSER}" || \
       err_exit "Failed setting password for ${MAINTUSER}" 1
    echo "Success"
-     echo "Success" || err_exit "Failed setting password for ${MAINTUSER}" 1
 
    # Probably superfluous w/in a function...
    if [[ ${PROTECTPWLOGGING:-} == "TRUE" ]]
@@ -112,14 +108,15 @@ function EnableProvUser {
    # Create maintenance user
    printf 'Creating %s in chroot [%s]... ' "${MAINTUSER}" "${CHROOT}"
    chroot "${CHROOT}" useradd -c "Maintenance User Account" -m \
-     -s /bin/bash "${MAINTUSER}" && echo "Success!" || \
-     err_exit "Failed creating ${MAINTUSER}" 1
+     -s /bin/bash "${MAINTUSER}" || err_exit "Failed creating ${MAINTUSER}" 1
+   echo "Success!"
 
    # Give maintenance user privileges
    printf 'Adding %s to sudoers... ' "${MAINTUSER}"
    printf '%s\tALL=(ALL)\tNOPASSWD:ALL\n' "${MAINTUSER}" > \
-     "${CHROOT}/etc/sudoers.d/user_${MAINTUSER}" && echo "Success!" || \
+     "${CHROOT}/etc/sudoers.d/user_${MAINTUSER}" || \
      err_exit "Failed adding ${MAINTUSER} to sudoers" 1
+   echo "Success!"
 
    # Set password
    SetPassString
