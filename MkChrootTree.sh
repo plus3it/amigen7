@@ -79,6 +79,22 @@ function FlexMount {
    # Ensure next-level mountpoints in /var all exist
    mkdir -p "${ALTROOT}"/var/{cache,log,lib/{,rpm},tmp}
 
+   # Ensure /var/run is a link to /run
+   if [[ -L /var/run ]]
+   then
+      (
+         cd "${ALTROOT}"/var/ &&
+         ln -s ../run run
+      )
+
+      if [[ $( readlink "${ALTROOT}/var/run" )$? -eq 1 ]]
+      then
+         echo "************************************************"
+         echo "** WARNING: /var/run is not a symlink to /run **"
+         echo "************************************************"
+      fi
+   fi
+
    # Mount the boot-root
    echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
    mount "${BOOTDEV}" "${ALTROOT}/boot/" || err_out 2 "Mount Failed"
