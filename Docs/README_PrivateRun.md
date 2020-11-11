@@ -19,6 +19,13 @@ The primary expected use case for these scripts is in a network that is able to 
       ./GrubSetup.sh /dev/xvdf ; \
       ./NetSet.sh ; \
       ./CleanChroot.sh ; \
+~~~
+Optionally, run:
+~~~
+      ./SetRootPW.sh <PASSWORD_STRING>; \
+~~~
+If setting the root user's password is desired. This will typically be used in non-cloud environments (e.g., VMware vSphere)
+~~~
       ./PreRelabel.sh	 ; \
       ./Umount.sh
 ~~~
