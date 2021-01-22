@@ -111,6 +111,12 @@ function EnableProvUser {
      -s /bin/bash "${MAINTUSER}" || err_exit "Failed creating ${MAINTUSER}" 1
    echo "Success!"
 
+   # Apply SELinux context to maintenance user
+   printf 'Setting SELinux context on %s in chroot [%s]... ' "${MAINTUSER}" "${CHROOT}"
+   chroot "${CHROOT}" semanage login -a -s unconfined_u "${MAINTUSER}" || \
+     err_exit "Failed setting SELinux context for ${MAINTUSER}" 1
+   echo "Success!"
+
    # Give maintenance user privileges
    printf 'Adding %s to sudoers... ' "${MAINTUSER}"
    printf '%s\tALL=(ALL)\tNOPASSWD:ALL\n' "${MAINTUSER}" > \
