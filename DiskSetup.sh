@@ -5,7 +5,7 @@
 #
 #################################################################
 PROGNAME=$(basename "$0")
-BOOTDEVSZ="500m"
+BOOTDEVSZ="${BOOTDEVSZ:-500m}"
 FSTYPE="${FSTYPE:-ext4}"
 
 # Function-abort hooks
@@ -25,6 +25,7 @@ function UsageMsg {
       echo "Usage: ${0} [GNU long option] [option] ..."
       echo "  Options:"
       printf "\t-b <BOOT_LABEL>\n"
+      printf '\t%-4s%s\n' '-B' 'Boot-partition size (default: 500MiB)'
       printf "\t-d <BOOT_DEV_PATH>\n"
       printf "\t-f <FSTYPE>\n"
       printf "\t-p <PARTITION_STRING>\n"
@@ -91,8 +92,8 @@ function CarveLVM {
    dd if=/dev/zero of="${CHROOTDEV}" bs=512 count=1000 > /dev/null 2>&1
 
    # Lay down the base partitions
-   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s ${BOOTDEVSZ} \
-      mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100% set 2 lvm
+   parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s "${BOOTDEVSZ}" \
+      mkpart primary "${FSTYPE}" "${BOOTDEVSZ}" 100% set 2 lvm
 
    # Gather info to diagnose seeming /boot race condition
    if [[ $(grep -q "${BOOTLABEL}" /proc/mounts)$? -eq 0 ]]
@@ -190,7 +191,7 @@ function CarveBare {
 
    # Lay down the base partitions
    parted -s "${CHROOTDEV}" -- mklabel msdos mkpart primary "${FSTYPE}" 2048s "${BOOTDEVSZ}" \
-      mkpart primary "${FSTYPE}" ${BOOTDEVSZ} 100%
+      mkpart primary "${FSTYPE}" "${BOOTDEVSZ}" 100%
 
    # Create FS on partitions
    mkfs -t "${FSTYPE}" "${MKFSFORCEOPT}" -L "${BOOTLABEL}" "${CHROOTDEV}${PARTPRE}1"
@@ -202,7 +203,7 @@ function CarveBare {
 ######################
 ## Main program-flow
 ######################
-OPTIONBUFR=$(getopt -o b:d:f:hp:r:v: --long bootlabel:,disk:,fstype:,help,partitioning:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
+OPTIONBUFR=$(getopt -o b:B:d:f:hp:r:v: --long bootlabel:,boot-size:,disk:,fstype:,help,partitioning:,rootlabel:,vgname: -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
 
@@ -221,6 +222,19 @@ do
                   ;;
                *)
                   BOOTLABEL=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      -B|--boot-size)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  BOOTDEVSZ=${2}
                   shift 2;
                   ;;
             esac
