@@ -6,7 +6,7 @@
 # * Configure basic SSHD behavior
 #
 #################################################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 
 # Create default if-script
 cat <<EOF > "${CHROOT}/etc/sysconfig/network-scripts/ifcfg-eth0"

@@ -7,7 +7,7 @@
 # reducing the launch-to-ready time by several minutes.
 #
 #################################################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 LOGGERFACILITY="local0"
 LOGGERLEVEL="crit"
 LOGGEROUT="${LOGGERFACILITY}.${LOGGERLEVEL}"

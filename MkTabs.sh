@@ -4,7 +4,7 @@
 # Script to set up the chroot'ed /etc/fstab
 #
 #################################################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 TARGSWAP=${2:-/dev/VolGroup00/swapVol}
 FSTAB="${CHROOT}/etc/fstab"
 

@@ -3,7 +3,7 @@
 # Script to clean up all devices mounted under $CHROOT
 #
 #################################################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 
 while read -r BLK
 do

@@ -12,7 +12,7 @@
 #
 ############################################################
 SCRIPTROOT="$( dirname "${0}" )"
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 BUNDLE="awscli-bundle.zip"
 ZIPSRC="${1:-https://s3.amazonaws.com/aws-cli/awscli-bundle.zip}"
 EPELRELEASE="${2:-https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm}"

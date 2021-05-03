@@ -6,7 +6,7 @@
 #   top of.
 #
 #################################################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 CHROOTDEV=${1:-UNDEF}
 CHGRUBDEF="${CHROOT}/etc/default/grub"
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"

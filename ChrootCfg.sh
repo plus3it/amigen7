@@ -15,7 +15,7 @@
 #   location.
 #
 #####################################
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 EXECIT=${LOCALSCRIPT:-UNDEF}
 NTPCONF="${CHROOT}/etc/ntp.conf"
 CLOUDCF="${CHROOT}/etc/cloud/cloud.cfg"
