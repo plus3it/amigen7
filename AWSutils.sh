@@ -5,7 +5,7 @@ set -eu -o pipefail
 #
 #######################################################################
 PROGNAME=$(basename "$0")
-CHROOTMNT="${CHROOT:-/mnt/ec2-root}"
+CHROOTMNT="${AMIGENCHROOT:-/mnt/ec2-root}"
 CLIV1SOURCE="${CLIV1SOURCE:-UNDEF}"
 CLIV2SOURCE="${CLIV2SOURCE:-UNDEF}"
 ICONNECTSRC="${ICONNECTSRC:-UNDEF}"

@@ -4,7 +4,7 @@
 # Do some file cleanup...
 #
 #########################
-CHROOT=${CHROOT:-/mnt/ec2-root}
+CHROOT=${AMIGENCHROOT:-/mnt/ec2-root}
 CLOUDCFG="$CHROOT/etc/cloud/cloud.cfg"
 JRNLCNF="$CHROOT/etc/systemd/journald.conf"
 MAINTUSR=${MAINTUSR:-"maintuser"}

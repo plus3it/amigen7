@@ -5,7 +5,7 @@
 #
 #####################################
 PROGNAME=$(basename "$0")
-CHROOT="${CHROOT:-/mnt/ec2-root}"
+CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 
 case $( rpm -qf /etc/os-release --qf '%{name}' ) in
    centos-release)

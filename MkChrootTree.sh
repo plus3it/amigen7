@@ -6,7 +6,7 @@
 #
 #######################################################################
 CHROOTDEV=${1:-UNDEF}
-ALTROOT="${CHROOT:-/mnt/ec2-root}"
+ALTROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 DEVFSTYP="${2:-ext4}"
 GEOMETRYSTRING="${3:-/:rootVol:4,swap:swapVol:2,/home:homeVol:1,/var:varVol:2,/var/log:logVol:2,/var/log/audit:auditVol:100%FREE}"
 
