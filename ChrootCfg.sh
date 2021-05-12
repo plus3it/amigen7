@@ -19,7 +19,7 @@ CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 EXECIT=${LOCALSCRIPT:-UNDEF}
 NTPCONF="${CHROOT}/etc/ntp.conf"
 CLOUDCF="${CHROOT}/etc/cloud/cloud.cfg"
-TIMEZON="UTC"
+TIMEZON="${AMIGENTIMEZONE:-UTC}"
 
 # Ensure key-based logins are enabled
 sed -i -e '/^ssh_pwauth/s/0$/1/' "${CLOUDCF}"
@@ -47,7 +47,7 @@ then
    # Only enable NTPD if a "server" line is found
    if [[ $(grep -q "^server" "${NTPCONF}")$? -eq 0 ]]
    then
-      chroot "${CHROOT}" /bin/sh -c "/sbin/chkconfig ntpd on" 
+      chroot "${CHROOT}" /bin/sh -c "/sbin/chkconfig ntpd on"
    else
       printf "%s does not exist or does not " "${NTPCONF}" > /dev/stderr
       printf "have a \"server\" defined.\n" > /dev/stderr
@@ -56,8 +56,8 @@ then
 fi
 
 # Ensure that tmp.mount Service is enabled
-chroot "${CHROOT}" /bin/systemctl unmask tmp.mount 
-chroot "${CHROOT}" /bin/systemctl enable tmp.mount 
+chroot "${CHROOT}" /bin/systemctl unmask tmp.mount
+chroot "${CHROOT}" /bin/systemctl enable tmp.mount
 
 # Ensure that SELinux policy files are installed
 chroot "${CHROOT}" /bin/sh -c "(rpm -q --scripts selinux-policy-targeted | \
