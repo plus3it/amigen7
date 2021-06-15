@@ -5,10 +5,20 @@
 # * Takes the dev-path hosting the /boot and LVM partitions as argument
 #
 #######################################################################
+PROGNAME=$(basename "$0")
 CHROOTDEV=${1:-UNDEF}
-ALTROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
-DEVFSTYP="${2:-ext4}"
-GEOMETRYSTRING="${3:-/:rootVol:4,swap:swapVol:2,/home:homeVol:1,/var:varVol:2,/var/log:logVol:2,/var/log/audit:auditVol:100%FREE}"
+CHROOTMNT="${AMIGENCHROOT:-/mnt/ec2-root}"
+FSTYPE="${DEFFSTYPE:-ext4}"
+DEFGEOMARR=(
+   /:rootVol:4
+   swap:swapVol:2
+   /home:homeVol:1
+   /var:varVol:2
+   /var/log:logVol:2
+   /var/log/audit:auditVol:100%FREE
+)
+DEFGEOMSTR="${DEFGEOMSTR:-$( IFS=$',' ; echo "${DEFGEOMARR[*]}" )}"
+GEOMETRYSTRING="${DEFGEOMSTR}"
 
 if [[ ${CHROOTDEV} =~ /dev/nvme ]]
 then
@@ -17,9 +27,37 @@ else
    PARTPRE=""
 fi
 
-BOOTDEV=${CHROOTDEV}${PARTPRE}1
-LVMDEV=${CHROOTDEV}${PARTPRE}2
 
+
+
+# Print out a basic usage message
+function UsageMsg {
+   local SCRIPTEXIT
+   local PART
+   SCRIPTEXIT="${1:-1}"
+
+   (
+      echo "Usage: ${0} [GNU long option] [option] ..."
+      echo "  Options:"
+      printf '\t%-4s%s\n' '-d' 'Device to contain the OS partition(s) (e.g., "/dev/xvdf")'
+      printf '\t%-4s%s\n' '-f' 'Filesystem-type used chroot-dev device(s) (default: "ext4")'
+      printf '\t%-4s%s\n' '-h' 'Print this message'
+      printf '\t%-4s%s\n' '-m' 'Where to mount chroot-dev (default: "/mnt/ec2-root")'
+      printf '\t%-4s%s\n' '-p' 'Comma-delimited string of colon-delimited partition-specs'
+      printf '\t%-6s%s\n' '' 'Default layout:'
+      for PART in ${DEFGEOMARR[*]}
+      do
+         printf '\t%-8s%s\n' '' "${PART}"
+      done
+      echo "  GNU long options:"
+      printf '\t%-20s%s\n' '--disk' 'See "-d" short-option'
+      printf '\t%-20s%s\n' '--fstype' 'See "-f" short-option'
+      printf '\t%-20s%s\n' '--help' 'See "-h" short-option'
+      printf '\t%-20s%s\n' '--mountpoint' 'See "-m" short-option'
+      printf '\t%-20s%s\n' '--partition-string' 'See "-p" short-option'
+   )
+   exit "${SCRIPTEXIT}"
+}
 
 # Generic logging outputter - extend to increase output destinations
 function err_out() {
@@ -56,17 +94,17 @@ function FlexMount {
    do
 
       # Ensure mountpoint exists
-      if [[ ! -d ${ALTROOT}/${MOUNTPT} ]]
+      if [[ ! -d ${CHROOTMNT}/${MOUNTPT} ]]
       then
-          install -dDm 000755 "${ALTROOT}/${MOUNTPT}"
+          install -dDm 000755 "${CHROOTMNT}/${MOUNTPT}"
       fi
 
       # Mount the filesystem
       if [[ ${MOUNTPT} == /* ]]
       then
-         echo "Mounting '${ALTROOT}${MOUNTPT}'..."
-         mount -t "${DEVFSTYP}" "/dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}" \
-           "${ALTROOT}${MOUNTPT}" || \
+         echo "Mounting '${CHROOTMNT}${MOUNTPT}'..."
+         mount -t "${FSTYPE}" "/dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}" \
+           "${CHROOTMNT}${MOUNTPT}" || \
              err_out 1 "Unable to mount /dev/${VGNAME}/${MOUNTINFO[${MOUNTPT}]//:*/}"
       else
          echo "Skipping '${MOUNTPT}'..."
@@ -74,20 +112,20 @@ function FlexMount {
    done
 
    # Ensure next-level mountpoints in / all exist
-   mkdir -p "${ALTROOT}"/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
+   mkdir -p "${CHROOTMNT}"/{var,opt,home,boot,etc} || err_out 3 "Mountpoint Create Failed"
 
    # Ensure next-level mountpoints in /var all exist
-   mkdir -p "${ALTROOT}"/var/{cache,log,lib/{,rpm},tmp}
+   mkdir -p "${CHROOTMNT}"/var/{cache,log,lib/{,rpm},tmp}
 
    # Ensure /var/run is a link to /run
    if [[ -L /var/run ]]
    then
       (
-         cd "${ALTROOT}"/var/ &&
+         cd "${CHROOTMNT}"/var/ &&
          ln -s ../run run
       )
 
-      if [[ $( readlink "${ALTROOT}/var/run" )$? -eq 1 ]]
+      if [[ $( readlink "${CHROOTMNT}/var/run" )$? -eq 1 ]]
       then
          echo "************************************************"
          echo "** WARNING: /var/run is not a symlink to /run **"
@@ -96,8 +134,8 @@ function FlexMount {
    fi
 
    # Mount the boot-root
-   echo "Mounting ${BOOTDEV} to ${ALTROOT}/boot"
-   mount "${BOOTDEV}" "${ALTROOT}/boot/" || err_out 2 "Mount Failed"
+   echo "Mounting ${BOOTDEV} to ${CHROOTMNT}/boot"
+   mount "${BOOTDEV}" "${CHROOTMNT}/boot/" || err_out 2 "Mount Failed"
 }
 
 
@@ -105,21 +143,109 @@ function FlexMount {
 ## MAIN ##
 ##########
 
+OPTIONBUFR=$( getopt \
+   -o d:f:hm:p: \
+   --long disk:,fstype:,help,mountpoint:,partition-string: \
+   -n "${PROGNAME}" -- "$@")
+
+eval set -- "${OPTIONBUFR}"
+
+###################################
+# Parse contents of ${OPTIONBUFR}
+###################################
+while true
+do
+   case "$1" in
+      -d|--disk)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  CHROOTDEV="${2}"
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      -f|--fstype)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  FSTYPE="${2}"
+                  if [[ $( grep -qw "${FSTYPE}" <<< "${VALIDFSTYPES[*]}" ) -ne 0 ]]
+                  then
+                     err_exit "Invalid fstype [${FSTYPE}] requested"
+                  fi
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      -h|--help)
+            UsageMsg 0
+            ;;
+      -m|--mountpoint)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  CHROOTMNT=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      -p|--partition-string)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  GEOMETRYSTRING=${2}
+                  shift 2;
+                  ;;
+            esac
+            ;;
+      --)
+         shift
+         break
+         ;;
+      *)
+         err_exit "Internal error!"
+         exit 1
+         ;;
+   esac
+done
+
+
+
+BOOTDEV=${CHROOTDEV}${PARTPRE}1
+LVMDEV=${CHROOTDEV}${PARTPRE}2
+
 # Can't do anything if we don't have an EBS to operate on
 if [[ ${CHROOTDEV} = UNDEF ]]
 then
    err_out 1 "Must supply name of device to use (e.g., /dev/xvdg)"
 fi
 
-if [ -d "${ALTROOT}" ]
+if [ -d "${CHROOTMNT}" ]
 then
-   echo "Found ${ALTROOT}: proceeding..."
-elif [ -e "${ALTROOT}" ] && [ ! -d "${ALTROOT}" ]
+   echo "Found ${CHROOTMNT}: proceeding..."
+elif [ -e "${CHROOTMNT}" ] && [ ! -d "${CHROOTMNT}" ]
 then
-   err_out 1 "Found ${ALTROOT} but it's not usable as mount-point"
+   err_out 1 "Found ${CHROOTMNT} but it's not usable as mount-point"
 else
-   printf "Requested chroot [%s] not found. Attempting to create... " "${ALTROOT}"
-   install -d -m 0755 "${ALTROOT}" || err_out 1 "Failed to create ${ALTROOT}."
+   printf "Requested chroot [%s] not found. Attempting to create... " "${CHROOTMNT}"
+   install -d -m 0755 "${CHROOTMNT}" || err_out 1 "Failed to create ${CHROOTMNT}."
    echo "Success!"
 fi
 
@@ -150,11 +276,11 @@ else
    for (( IDX=${#PARTS[@]}-1 ; IDX>=0 ; IDX-- ))
    do
       # Get partition-label
-      if [[ ${DEVFSTYP} == ext3 ]] ||
-         [[ ${DEVFSTYP} == ext4 ]]
+      if [[ ${FSTYPE} == ext3 ]] ||
+         [[ ${FSTYPE} == ext4 ]]
       then
          LABEL=$(e2label "/dev/${PARTS[IDX]}")
-      elif [[ ${DEVFSTYP} == xfs ]]
+      elif [[ ${FSTYPE} == xfs ]]
       then
          LABEL=$( xfs_admin -l "/dev/${PARTS[IDX]}" | sed -e 's/"$//' -e 's/^.*"//' )
       else
@@ -162,34 +288,34 @@ else
       fi
 
       # Ensure mount-point exists
-      if [[ ! -d ${ALTROOT}${MNTPTS[IDX]} ]]
+      if [[ ! -d ${CHROOTMNT}${MNTPTS[IDX]} ]]
       then
-         mkdir -p "${ALTROOT}${MNTPTS[IDX]}"
+         mkdir -p "${CHROOTMNT}${MNTPTS[IDX]}"
       fi
 
       # Mount partition by label
-      mount LABEL="${LABEL}" "${ALTROOT}${MNTPTS[IDX]}"
+      mount LABEL="${LABEL}" "${CHROOTMNT}${MNTPTS[IDX]}"
    done
 
 fi
 
 
 # Prep for loopback mounts
-mkdir -p "${ALTROOT}"/{proc,sys,dev/{pts,shm}}
+mkdir -p "${CHROOTMNT}"/{proc,sys,dev/{pts,shm}}
 
 # Create base dev-nodes
-mknod -m 600 "${ALTROOT}"/dev/console c 5 1
-mknod -m 666 "${ALTROOT}"/dev/null c 1 3
-mknod -m 666 "${ALTROOT}"/dev/zero c 1 5
-mknod -m 666 "${ALTROOT}"/dev/random c 1 8
-mknod -m 666 "${ALTROOT}"/dev/urandom c 1 9
-mknod -m 666 "${ALTROOT}"/dev/tty c 5 0
-mknod -m 666 "${ALTROOT}"/dev/ptmx c 5 2
-chown root:tty "${ALTROOT}"/dev/ptmx
+mknod -m 600 "${CHROOTMNT}"/dev/console c 5 1
+mknod -m 666 "${CHROOTMNT}"/dev/null c 1 3
+mknod -m 666 "${CHROOTMNT}"/dev/zero c 1 5
+mknod -m 666 "${CHROOTMNT}"/dev/random c 1 8
+mknod -m 666 "${CHROOTMNT}"/dev/urandom c 1 9
+mknod -m 666 "${CHROOTMNT}"/dev/tty c 5 0
+mknod -m 666 "${CHROOTMNT}"/dev/ptmx c 5 2
+chown root:tty "${CHROOTMNT}"/dev/ptmx
 
 
 # Bind-mount everything else
-BINDSOURCES=( $(grep -v "${ALTROOT}" /proc/mounts | sed '{
+BINDSOURCES=( $(grep -v "${CHROOTMNT}" /proc/mounts | sed '{
                  /^none/d
                  /\/tmp/d
                  /rootfs/d
@@ -204,11 +330,11 @@ BINDSOURCES=( $(grep -v "${ALTROOT}" /proc/mounts | sed '{
 
 for MOUNT in "${BINDSOURCES[@]}"
 do
-   if [[ ! -d ${ALTROOT}${MOUNT} ]]
+   if [[ ! -d ${CHROOTMNT}${MOUNT} ]]
    then
-      mkdir -p "${ALTROOT}${MOUNT}" && \
-         echo "Creating ${ALTROOT}${MOUNT}" || break
+      mkdir -p "${CHROOTMNT}${MOUNT}" && \
+         echo "Creating ${CHROOTMNT}${MOUNT}" || break
    fi
-   echo "Bind-mounting ${MOUNT} to ${ALTROOT}${MOUNT}"
-   mount -o bind "${MOUNT}" "${ALTROOT}${MOUNT}"
+   echo "Bind-mounting ${MOUNT} to ${CHROOTMNT}${MOUNT}"
+   mount -o bind "${MOUNT}" "${CHROOTMNT}${MOUNT}"
 done
