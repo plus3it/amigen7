@@ -17,6 +17,7 @@
 #####################################
 PROGNAME=$(basename "$0")
 CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
+DEBUG="${DEBUG:-UNDEF}"
 EXECIT=${LOCALSCRIPT:-UNDEF}
 NTPCONF="${CHROOT}/etc/ntp.conf"
 CLOUDCF="${CHROOT}/etc/cloud/cloud.cfg"
