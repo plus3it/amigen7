@@ -81,8 +81,8 @@ function UsageMsg {
 ## Main program-flow
 ######################
 OPTIONBUFR=$( getopt \
-   -o Ff:hm:z: \
-   --long fstype:,help,mountpoint:,no-fips,no-tmpfs,timezone \
+   -o hm:z: \
+   --long help,mountpoint:,timezone \
    -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
@@ -93,9 +93,6 @@ eval set -- "${OPTIONBUFR}"
 while true
 do
    case "$1" in
-      --no-tmpfs)
-            NOTMPFS="true"
-            ;;
       -h|--help)
             UsageMsg 0
             ;;
