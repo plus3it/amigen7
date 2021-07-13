@@ -158,7 +158,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       REPORPMS=($(echo "${2}" | sed 's/,/ /g'))
+	       REPORPMS=(read -a "${2//,/ }")
 	       shift 2;
 	       ;;
 	 esac
@@ -184,7 +184,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       EXTRARPMS=($(echo "${2}" | sed 's/,/ /g'))
+	       EXTRARPMS=(read -a "${2//,/ }")
 	       shift 2;
 	       ;;
 	 esac
