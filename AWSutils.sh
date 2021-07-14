@@ -89,12 +89,6 @@ function EnsurePy3 {
       err_exit "Installing python3..." NONE
       yum --installroot="${CHROOTMNT}" install --quiet -y python3 || \
         err_exit "Failed installing python3"
-
-      err_exit "Creating /bin/python link..." NONE
-      chroot "${CHROOTMNT}" bash -c "(
-            alternatives --set python /usr/bin/python3
-         )" || \
-        err_exit "Failed creating /bin/python link"
    fi
 }
 
