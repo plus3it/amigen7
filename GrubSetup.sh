@@ -9,6 +9,7 @@
 CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 CHROOTDEV=${1:-UNDEF}
 CHGRUBDEF="${CHROOT}/etc/default/grub"
+GRUBTMOUT="${GRUBTMOUT:-1}"
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 
 # Check for arguments
@@ -34,7 +35,7 @@ then
    printf "was faulty. Manufacturing a %s.\n" "${CHGRUBDEF}"
 
    (
-    printf "GRUB_TIMEOUT=1\n"
+    printf "GRUB_TIMEOUT=%s\n" "${GRUBTMOUT}"
     # shellcheck disable=2059
     printf "GRUB_DISTRIBUTOR=\"$(sed 's, release .*$,,g' /etc/system-release)\"\n"
     printf "GRUB_DEFAULT=saved\n"
