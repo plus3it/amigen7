@@ -129,7 +129,7 @@ function PrepChroot() {
       --installroot="${CHROOT}" -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repos
-   if [[ ! -z ${REPORPMS+xxx} ]]
+   if [[ -n ${REPORPMS+xxx} ]]
    then
       for RPM in "${REPORPMS[@]}"
       do
@@ -425,7 +425,7 @@ $YUMDO -- "${INCLUDE_PKGS[@]}" "${EXCLUDE_PKGS[@]}"
 rpm --root "${CHROOT}" -q "${INCLUDE_PKGS[@]}"
 
 # Install additionally-requested RPMs
-if [[ ! -z ${EXTRARPMS+xxx} ]]
+if [[ -n ${EXTRARPMS+xxx} ]]
 then
    printf "##########\n## Installing requested RPMs/groups\n##########\n"
    for RPM in "${EXTRARPMS[@]}"
