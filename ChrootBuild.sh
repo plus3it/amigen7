@@ -118,7 +118,7 @@ function PrepChroot() {
    rpm --root "${CHROOT}" -ivh --nodeps /tmp/*.rpm
 
    # When we don't specify repos, default to a sensible value-list
-   if [[ -z ${BONUSREPO+xxx} ]]
+   if [[ -z ${BONUSREPO} ]]
    then
       BONUSREPO=${DEFAULTREPOS}
    fi
@@ -129,7 +129,7 @@ function PrepChroot() {
       --installroot="${CHROOT}" -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repos
-   if [[ -n ${REPORPMS+xxx} ]]
+   if [[ -n ${REPORPMS} ]]
    then
       for RPM in "${REPORPMS[@]}"
       do
@@ -232,7 +232,7 @@ done
 # Stage useable repo-defs into $CHROOT/etc/yum.repos.d
 PrepChroot
 
-if [[ ! -z ${BONUSREPO+xxx} ]]
+if [[ -n ${BONUSREPO} ]]
 then
    ENABREPO=--enablerepo=${BONUSREPO}
    # shellcheck disable=SC2125
@@ -258,7 +258,7 @@ esac
 # Setup the "include" package list
 
 # Use manifest file if found and non-empty
-if [[ ! -z ${MANIFESTFILE} ]] && [[ -s ${MANIFESTFILE} ]]
+if [[ -n ${MANIFESTFILE} ]] && [[ -s ${MANIFESTFILE} ]]
 then
    echo "Selecting packages from ${MANIFESTFILE}..."
    INCLUDE_PKGS=($( < "${MANIFESTFILE}" ))
@@ -425,7 +425,7 @@ $YUMDO -- "${INCLUDE_PKGS[@]}" "${EXCLUDE_PKGS[@]}"
 rpm --root "${CHROOT}" -q "${INCLUDE_PKGS[@]}"
 
 # Install additionally-requested RPMs
-if [[ -n ${EXTRARPMS+xxx} ]]
+if [[ -n ${EXTRARPMS} ]]
 then
    printf "##########\n## Installing requested RPMs/groups\n##########\n"
    for RPM in "${EXTRARPMS[@]}"
