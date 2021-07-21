@@ -5,6 +5,7 @@
 ######################################################################
 PROGNAME="$( basename "${0}" )"
 CHROOT="${CHROOT:-/mnt/ec2-root}"
+DEBUG="${DEBUG:-UNDEF}"
 ROOTPWSTRING="${PWSTRING:-UNDEF}"
 MAINTUSER="${MAINTUSER:-root}"
 
