@@ -6,9 +6,11 @@
 #   top of.
 #
 #################################################################
+PROGNAME=$(basename "$0")
 CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
 CHROOTDEV=${1:-UNDEF}
 CHGRUBDEF="${CHROOT}/etc/default/grub"
+DEBUG="${DEBUG:-UNDEF}"
 GRUBTMOUT="${GRUBTMOUT:-1}"
 FIPSDISABLE="${FIPSDISABLE:-UNDEF}"
 
