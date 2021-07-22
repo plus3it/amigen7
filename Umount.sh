@@ -4,6 +4,7 @@
 #
 #################################################################
 CHROOT="${AMIGENCHROOT:-/mnt/ec2-root}"
+DEBUG="${DEBUG:-UNDEF}"
 
 while read -r BLK
 do
