@@ -129,7 +129,7 @@ function PrepChroot() {
       --installroot="${CHROOT}" -y install yum-utils
 
    # if alt-repo defined, disable everything, then install alt-repos
-   if [[ -n ${REPORPMS[0]} ]]
+   if [[ -n "$REPORPMS" ]]
    then
       for RPM in "${REPORPMS[@]}"
       do
@@ -158,7 +158,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       REPORPMS=$(read -a "${2//,/ }")
+	       IFS=, read -a REPORPMS <<< "$2"
 	       shift 2;
 	       ;;
 	 esac
@@ -184,7 +184,7 @@ do
 	       exit 1
 	       ;;
 	    *)
-	       EXTRARPMS=(read -a "${2//,/ }")
+	       IFS=, read -a EXTRARPMS <<< "$2"
 	       shift 2;
 	       ;;
 	 esac
@@ -232,7 +232,7 @@ done
 # Stage useable repo-defs into $CHROOT/etc/yum.repos.d
 PrepChroot
 
-if [[ -n ${BONUSREPO[0]} ]]
+if [[ -n "$BONUSREPO" ]]
 then
    ENABREPO=--enablerepo=${BONUSREPO}
    # shellcheck disable=SC2125
@@ -425,7 +425,7 @@ $YUMDO -- "${INCLUDE_PKGS[@]}" "${EXCLUDE_PKGS[@]}"
 rpm --root "${CHROOT}" -q "${INCLUDE_PKGS[@]}"
 
 # Install additionally-requested RPMs
-if [[ -n ${EXTRARPMS[0]} ]]
+if [[ -n "$EXTRARPMS" ]]
 then
    printf "##########\n## Installing requested RPMs/groups\n##########\n"
    for RPM in "${EXTRARPMS[@]}"
