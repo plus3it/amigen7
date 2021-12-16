@@ -167,9 +167,11 @@ function install_aws_utils()
 function InstallCLIv1 {
    local INSTALLDIR
    local BINDIR
+   local TMPDIR
 
    INSTALLDIR="/usr/local/aws-cli/v1"
    BINDIR="/usr/local/bin"
+   TMPDIR=$(chroot "${CHROOTMNT}" /bin/bash -c "mktemp -d")
 
    if [[ ${CLIV1SOURCE} == "UNDEF" ]]
    then
@@ -180,18 +182,18 @@ function InstallCLIv1 {
       EnsurePy3
 
       err_exit "Fetching ${CLIV1SOURCE}..." NONE
-      curl -sL "${CLIV1SOURCE}" -o "${CHROOTMNT}/tmp/awscli-bundle.zip" || \
+      curl -sL "${CLIV1SOURCE}" -o "${CHROOTMNT}${TMPDIR}/awscli-bundle.zip" || \
         err_exit "Failed fetching ${CLIV1SOURCE}"
 
       err_exit "Dearchiving awscli-bundle.zip..." NONE
       (
-         cd "${CHROOTMNT}/tmp"
+         cd "${CHROOTMNT}${TMPDIR}"
          unzip -q awscli-bundle.zip
       ) || \
         err_exit "Failed dearchiving awscli-bundle.zip"
 
       err_exit "Installing AWS CLIv1..." NONE
-      chroot "${CHROOTMNT}" /bin/bash -c "python3 /tmp/awscli-bundle/install -i '${INSTALLDIR}' -b '${BINDIR}/aws'" || \
+      chroot "${CHROOTMNT}" /bin/bash -c "python3 ${TMPDIR}/awscli-bundle/install -i '${INSTALLDIR}' -b '${BINDIR}/aws'" || \
          err_exit "Failed installing AWS CLIv1"
 
       err_exit "Creating AWS CLIv1 symlink ${BINDIR}/aws1..." NONE
@@ -199,8 +201,7 @@ function InstallCLIv1 {
         err_exit "Failed creating ${BINDIR}/aws1"
 
       err_exit "Cleaning up install files..." NONE
-      rm -rf "${CHROOTMNT}/tmp/awscli-bundle.zip" \
-         "${CHROOTMNT}/tmp/awscli-bundle" || \
+      rm -rf "${CHROOTMNT}${TMPDIR}" || \
         err_exit "Failed cleaning up install files"
    elif [[ ${CLIV1SOURCE} == pip,* ]]
    then
@@ -209,16 +210,17 @@ function InstallCLIv1 {
 
       chroot "${CHROOTMNT}" /usr/bin/pip3 install --upgrade "${CLIV1SOURCE/pip*,}"
    fi
-
 }
 
 # Install AWS CLI version 2.x
 function InstallCLIv2 {
    local INSTALLDIR
    local BINDIR
+   local TMPDIR
 
    INSTALLDIR="/usr/local/aws-cli"  # installer appends v2/current
    BINDIR="/usr/local/bin"
+   TMPDIR=$(chroot "${CHROOTMNT}" /bin/bash -c "mktemp -d")
 
    if [[ ${CLIV2SOURCE} == "UNDEF" ]]
    then
@@ -226,18 +228,18 @@ function InstallCLIv2 {
    elif [[ ${CLIV2SOURCE} == http[s]://*zip ]]
    then
       err_exit "Fetching ${CLIV2SOURCE}..." NONE
-      curl -sL "${CLIV2SOURCE}" -o "${CHROOTMNT}/tmp/awscli-exe.zip" || \
+      curl -sL "${CLIV2SOURCE}" -o "${CHROOTMNT}${TMPDIR}/awscli-exe.zip" || \
         err_exit "Failed fetching ${CLIV2SOURCE}"
 
       err_exit "Dearchiving awscli-exe.zip..." NONE
       (
-         cd "${CHROOTMNT}/tmp"
+         cd "${CHROOTMNT}${TMPDIR}"
          unzip -q awscli-exe.zip
       ) || \
         err_exit "Failed dearchiving awscli-exe.zip"
 
       err_exit "Installing AWS CLIv2..." NONE
-      chroot "${CHROOTMNT}" /bin/bash -c "/tmp/aws/install -i '${INSTALLDIR}' -b '${BINDIR}'" || \
+      chroot "${CHROOTMNT}" /bin/bash -c "${TMPDIR}/aws/install -i '${INSTALLDIR}' -b '${BINDIR}'" || \
          err_exit "Failed installing AWS CLIv2"
 
       err_exit "Creating AWS CLIv2 symlink ${BINDIR}/aws2..." NONE
@@ -245,11 +247,9 @@ function InstallCLIv2 {
         err_exit "Failed creating ${BINDIR}/aws2"
 
       err_exit "Cleaning up install files..." NONE
-      rm -rf "${CHROOTMNT}/tmp/awscli-exe.zip" \
-         "${CHROOTMNT}/tmp/aws" || \
+      rm -rf "${CHROOTMNT}${TMPDIR}" || \
         err_exit "Failed cleaning up install files"
    fi
-
 }
 
 # Install AWS utils from "directory"
