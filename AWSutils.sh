@@ -17,7 +17,6 @@ SYSTEMDSVCS=(
     autotune.service
     amazon-ssm-agent.service
     hibinit-agent.service
-    ec2-instance-connect.service
 )
 
 # Make interactive-execution more-verbose unless explicitly told not to
