@@ -14,9 +14,10 @@ SSMAGENT="${SSMAGENT:-UNDEF}"
 UTILSDIR="${UTILSDIR:-UNDEF}"
 
 SYSTEMDSVCS=(
-    autotune.service
-    amazon-ssm-agent.service
-    hibinit-agent.service
+    autotune
+    amazon-ssm-agent
+    hibinit-agent
+    ec2-instance-connect
 )
 
 # Make interactive-execution more-verbose unless explicitly told not to
@@ -66,14 +67,16 @@ function UsageMsg {
       printf '\t%-4s%s\n' '-i' 'Where to get AWS InstanceConnect (RPM or git URL)'
       printf '\t%-4s%s\n' '-m' 'Where chroot-dev is mounted (default: "/mnt/ec2-root")'
       printf '\t%-4s%s\n' '-s' 'Where to get AWS SSM Agent (Installs via RPM)'
+      printf '\t%-4s%s\n' '-t' 'Systemd services to enable with systemctl'
       echo "  GNU long options:"
       printf '\t%-20s%s\n' '--cli-v1' 'See "-C" short-option'
       printf '\t%-20s%s\n' '--cli-v2' 'See "-c" short-option'
       printf '\t%-20s%s\n' '--help' 'See "-h" short-option'
       printf '\t%-20s%s\n' '--instance-connect' 'See "-i" short-option'
       printf '\t%-20s%s\n' '--mountpoint' 'See "-m" short-option'
-      printf '\t%-20s%s\n' '--utils-dir' 'See "-d" short-option'
       printf '\t%-20s%s\n' '--ssm-agent' 'See "-s" short-option'
+      printf '\t%-20s%s\n' '--systemd-services' 'See "-t" short-option'
+      printf '\t%-20s%s\n' '--utils-dir' 'See "-d" short-option'
    )
    exit "${SCRIPTEXIT}"
 }
@@ -117,17 +120,6 @@ function enable_rhel_optional_repo()
     fi
 }
 
-# Force systemd services to be enabled in resultant AMI
-function enable_services()
-{
-    for SVC in "${SYSTEMDSVCS[@]}"
-    do
-        printf "Attempting to enable %s in %s... " "${SVC}" "${CHROOTMNT}"
-        chroot "${CHROOTMNT}" /usr/bin/systemctl enable "${SVC}" || err_exit "FAILED"
-        echo "SUCCESS"
-    done
-}
-
 # Get list of rpm filenames
 function get_awstools_filenames()
 {
@@ -158,8 +150,18 @@ function install_aws_utils()
     else
         # shellcheck disable=2086
         yum --installroot="${CHROOTMNT}" install -e 0 -y ${rpmfiles} || exit $?
-        enable_services
     fi
+}
+
+# Force systemd services to be enabled in resultant AMI
+function EnableServices()
+{
+   for SVC in "${SYSTEMDSVCS[@]}"
+   do
+      printf "Attempting to enable %s in %s... " "${SVC}.service" "${CHROOTMNT}"
+      chroot "${CHROOTMNT}" /usr/bin/systemctl enable "${SVC}.service" || err_exit "FAILED"
+      echo "SUCCESS"
+   done
 }
 
 # Install AWS CLI version 1.x
@@ -379,8 +381,8 @@ function InstallSSMagent {
 ## Main program-flow
 ######################
 OPTIONBUFR=$( getopt \
-   -o C:c:d:hi:m:s:\
-   --long cli-v1:,cli-v2:,help,instance-connect:,mountpoint:,ssm-agent:,utils-dir: \
+   -o C:c:d:hi:m:s:t:\
+   --long cli-v1:,cli-v2:,help,instance-connect:,mountpoint:,ssm-agent:systemd-services:,utils-dir: \
    -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
@@ -472,6 +474,19 @@ do
                   ;;
             esac
             ;;
+      -t|--systemd-services)
+            case "$2" in
+               "")
+                  echo "Error: option required but not specified" > /dev/stderr
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  IFS=, read -ra SYSTEMDSVCS <<< "$2"
+                  shift 2;
+                  ;;
+            esac
+            ;;
       --)
          shift
          break
@@ -500,3 +515,6 @@ InstallInstanceConnect
 
 # Install AWS utils from directory
 InstallFromDir
+
+# Enable services
+EnableServices
