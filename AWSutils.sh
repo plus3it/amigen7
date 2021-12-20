@@ -66,9 +66,11 @@ function UsageMsg {
       printf '\t%-4s%s\n' '-h' 'Print this message'
       printf '\t%-4s%s\n' '-i' 'Where to get AWS InstanceConnect (RPM or git URL)'
       printf '\t%-4s%s\n' '-m' 'Where chroot-dev is mounted (default: "/mnt/ec2-root")'
+      printf '\t%-4s%s\n' '-n' 'Where to get AWS CFN Bootstrap (Installs tar.gz via Python Pip)'
       printf '\t%-4s%s\n' '-s' 'Where to get AWS SSM Agent (Installs via RPM)'
       printf '\t%-4s%s\n' '-t' 'Systemd services to enable with systemctl'
       echo "  GNU long options:"
+      printf '\t%-20s%s\n' '--cfn-bootstrap' 'See "-n" short-option'
       printf '\t%-20s%s\n' '--cli-v1' 'See "-C" short-option'
       printf '\t%-20s%s\n' '--cli-v2' 'See "-c" short-option'
       printf '\t%-20s%s\n' '--help' 'See "-h" short-option'
@@ -376,13 +378,51 @@ function InstallSSMagent {
    fi
 }
 
+# Install AWS CFN Bootstrap
+function InstallCfnBootstrap {
+   if [[ -z ${CFNBOOTSTRAP:-} ]]
+   then
+      err_exit "AWS CFN Bootstrap not requested for install. Skipping..." NONE
+   elif [[ ${CFNBOOTSTRAP} == *.tar.gz ]]
+   then
+      local TMPDIR
+      TMPDIR=$(chroot "${CHROOTMNT}" mktemp -d)
+
+      err_exit "Fetching ${CFNBOOTSTRAP}..." NONE
+      curl -sL "${CFNBOOTSTRAP}" -o "${CHROOTMNT}${TMPDIR}/aws-cfn-bootstrap.tar.gz"
+
+      err_exit "Installing AWS CFN Bootstrap..." NONE
+      chroot "${CHROOTMNT}" python3 -m pip install "${TMPDIR}/aws-cfn-bootstrap.tar.gz" || \
+        err_exit "Failed installing AWS CFN Bootstrap"
+
+      err_exit "Setting up directory structure for cfn-hup service..." NONE
+      chroot "${CHROOTMNT}" install -Ddm 000755 /opt/aws/apitools/cfn-init/init/redhat/ /opt/aws/bin || \
+         err_exit "Failing setting up cfn-hup directories"
+
+      err_exit "Creating symlink for cfn-hup executable..." NONE
+      chroot "${CHROOTMNT}" ln -sf /usr/local/bin/cfn-hup /opt/aws/bin/cfn-hup || \
+         err_exit "Failed creating symlink for cfn-hup executable"
+
+      err_exit "Extracting cfn-hup service definition file..." NONE
+      chroot "${CHROOTMNT}" tar -C /opt/aws/apitools/cfn-init/ -xzv --wildcards --no-anchored --strip-components=1 -f "${TMPDIR}/aws-cfn-bootstrap.tar.gz" redhat/cfn-hup || \
+         err_exit "Failed to extract cfn-hup service definition"
+
+      err_exit "Creating symlink for cfn-hup service..." NONE
+      chroot "${CHROOTMNT}" ln -sf /opt/aws/apitools/cfn-init/init/redhat/cfn-hup /etc/init.d/cfn-hup || \
+         err_exit "Failed creating symlink for cfn-hup service"
+
+      err_exit "Cleaning up install files..." NONE
+      rm -rf "${CHROOTMNT}${TMPDIR}" || \
+        err_exit "Failed cleaning up install files"
+   fi
+}
 
 ######################
 ## Main program-flow
 ######################
 OPTIONBUFR=$( getopt \
-   -o C:c:d:hi:m:s:t:\
-   --long cli-v1:,cli-v2:,help,instance-connect:,mountpoint:,ssm-agent:systemd-services:,utils-dir: \
+   -o C:c:d:hi:m:n:s:t:\
+   --long cli-v1:,cli-v2:,cfn-bootstrap:,help,instance-connect:,mountpoint:,ssm-agent:systemd-services:,utils-dir: \
    -n "${PROGNAME}" -- "$@")
 
 eval set -- "${OPTIONBUFR}"
@@ -461,6 +501,19 @@ do
                   ;;
             esac
             ;;
+      -n|--cfn-bootstrap)
+            case "$2" in
+               "")
+                  err_exit "Error: option required but not specified"
+                  shift 2;
+                  exit 1
+                  ;;
+               *)
+                  CFNBOOTSTRAP="${2}"
+                  shift 2;
+                  ;;
+            esac
+            ;;
       -s|--ssm-agent)
             case "$2" in
                "")
@@ -515,6 +568,9 @@ InstallInstanceConnect
 
 # Install AWS utils from directory
 InstallFromDir
+
+# Install AWS CFN Bootstrap
+InstallCfnBootstrap
 
 # Enable services
 EnableServices
