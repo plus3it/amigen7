@@ -399,10 +399,6 @@ function InstallCfnBootstrap {
       chroot "${CHROOTMNT}" install -Ddm 000755 /opt/aws/apitools/cfn-init/init/redhat/ /opt/aws/bin || \
          err_exit "Failing setting up cfn-hup directories"
 
-      err_exit "Creating symlink for cfn-hup executable..." NONE
-      chroot "${CHROOTMNT}" ln -sf /usr/local/bin/cfn-hup /opt/aws/bin/cfn-hup || \
-         err_exit "Failed creating symlink for cfn-hup executable"
-
       err_exit "Extracting cfn-hup service definition file..." NONE
       chroot "${CHROOTMNT}" tar -C /opt/aws/apitools/cfn-init/ -xzv --wildcards --no-anchored --strip-components=1 -f "${TMPDIR}/aws-cfn-bootstrap.tar.gz" redhat/cfn-hup || \
          err_exit "Failed to extract cfn-hup service definition"
@@ -410,6 +406,10 @@ function InstallCfnBootstrap {
       err_exit "Creating symlink for cfn-hup service..." NONE
       chroot "${CHROOTMNT}" ln -sf /opt/aws/apitools/cfn-init/init/redhat/cfn-hup /etc/init.d/cfn-hup || \
          err_exit "Failed creating symlink for cfn-hup service"
+
+      err_exit "Using alternatives to configure cfn-hup symlink and initscript..." NONE
+      chroot "${CHROOTMNT}" alternatives --verbose --install /opt/aws/bin/cfn-hup cfn-hup /usr/local/bin/cfn-hup 1 --initscript cfn-hup || \
+         err_exit "Failed configuring cfn-hup symlink and initscript"
 
       err_exit "Cleaning up install files..." NONE
       rm -rf "${CHROOTMNT}${TMPDIR}" || \
