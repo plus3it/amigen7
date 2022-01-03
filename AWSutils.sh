@@ -11,7 +11,6 @@ CLIV2SOURCE="${CLIV2SOURCE:-UNDEF}"
 ICONNECTSRC="${ICONNECTSRC:-UNDEF}"
 DEBUG="${DEBUG:-UNDEF}"
 SSMAGENT="${SSMAGENT:-UNDEF}"
-UTILSDIR="${UTILSDIR:-UNDEF}"
 
 SYSTEMDSVCS=(
     autotune
@@ -257,9 +256,14 @@ function InstallCLIv2 {
 
 # Install AWS utils from "directory"
 function InstallFromDir {
-    check_amzn_rpms
-    enable_rhel_optional_repo
-    install_aws_utils
+    if [[ -z "${UTILSDIR:-}" ]]
+    then
+       err_exit "AWS Utils not requested for install from directory. Skipping..." NONE
+    else
+       check_amzn_rpms
+       enable_rhel_optional_repo
+       install_aws_utils
+    fi
 }
 
 # Install AWS InstanceConnect
