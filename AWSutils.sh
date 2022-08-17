@@ -411,6 +411,10 @@ function InstallCfnBootstrap {
       chroot "${CHROOTMNT}" ln -sf /opt/aws/apitools/cfn-init/init/redhat/cfn-hup /etc/init.d/cfn-hup || \
          err_exit "Failed creating symlink for cfn-hup service"
 
+      err_exit "Making sure cfn-hup service is executable..." NONE
+      chmod +x "${CHROOTMNT}/etc/init.d/cfn-hup" || \
+         err_exit "Failed making cfn-hup service executable"
+
       err_exit "Using alternatives to configure cfn-hup symlink and initscript..." NONE
       chroot "${CHROOTMNT}" alternatives --verbose --install /opt/aws/bin/cfn-hup cfn-hup /usr/local/bin/cfn-hup 1 --initscript cfn-hup || \
          err_exit "Failed configuring cfn-hup symlink and initscript"
