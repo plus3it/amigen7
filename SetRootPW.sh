@@ -114,7 +114,7 @@ function EnableProvUser {
 
    # Apply SELinux context to maintenance user
    printf 'Setting SELinux context on %s in chroot [%s]... ' "${MAINTUSER}" "${CHROOT}"
-   chroot "${CHROOT}" semanage login -a -s unconfined_u "${MAINTUSER}" || \
+   chroot "${CHROOT}" semanage login -a -s staff_u "${MAINTUSER}" || \
      err_exit "Failed setting SELinux context for ${MAINTUSER}" 1
    echo "Success!"
 
