@@ -20,14 +20,6 @@ DEFGEOMARR=(
 DEFGEOMSTR="${DEFGEOMSTR:-$( IFS=$',' ; echo "${DEFGEOMARR[*]}" )}"
 GEOMETRYSTRING="${DEFGEOMSTR}"
 
-if [[ ${CHROOTDEV} =~ /dev/nvme ]]
-then
-   PARTPRE="p"
-else
-   PARTPRE=""
-fi
-
-
 
 
 # Print out a basic usage message
@@ -226,7 +218,13 @@ do
    esac
 done
 
-
+# Set a partition-prefix as necessary
+if [[ ${CHROOTDEV} =~ /dev/nvme ]]
+then
+   PARTPRE="p"
+else
+   PARTPRE=""
+fi
 
 BOOTDEV=${CHROOTDEV}${PARTPRE}1
 LVMDEV=${CHROOTDEV}${PARTPRE}2
